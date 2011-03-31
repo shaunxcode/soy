@@ -13,19 +13,20 @@ regex  /regex/
 symbol symbol+can-have?chars%a&plenty* 
 list (list a (b (c)))
 dict (dict age 40 
-		   height (ft 5))
+           height (ft 5))
 
 Syntactic sugar includes:
 "square lambdas": [x | [y | + x y]] = (lambda (x) (lambda (y) (+ x y)))
 "squiggly dicts": {age: 40 height: (ft 5)} = (dict (age 40) (height (ft 5)))
+"squiggly lists": {1 2 3 x y z} = (list 1 2 3 x y z)
 
 features include:
 full macro support - penalty for doing things like (apply macro-in-var-name '(a b c)) - as it has to actually expand the macro at run time instead of compile time. The chances of needing to do this are pretty slim and sort of have an implicit code smell, regardless it is supported. 
 
 Namespaces via /  
-(namespace BigProject/subModule/module1
-	(define someVar 400)
-	(define someGetter [someVar]))
+(namespace BigProject/subModule/module1)
+(define someVar 400)
+(define someGetter [someVar])
 
 (BigProject/subModule/module1/someGetter) = 400
 
