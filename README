@@ -9,7 +9,7 @@ all functions should contain the lisp code required to build them, this is accom
 Primitive data types are:
 number -43.54
 string "string here"
-regex  /[regex]/
+regex  /regex/
 symbol symbol+can-have?chars%a&plenty* 
 list (list a (b (c)))
 dict (dict age 40 
@@ -19,24 +19,24 @@ Syntactic sugar includes:
 "square lambdas": [x | [y | + x y]] = (lambda (x) (lambda (y) (+ x y)))
 "squiggly dicts": {age: 40 height: (ft 5)} = (dict (age 40) (height (ft 5)))
 
-As much as possible of the system is bootstrapped w/ macros, this includes things like the (. ) macro for working with objects
-(. x y z) = $x->y->z. 
-Many of the special forms are themselves macros.
-
 features include:
 full macro support - penalty for doing things like (apply macro-in-var-name '(a b c)) - as it has to actually expand the macro at run time instead of compile time. The chances of needing to do this are pretty slim and sort of have an implicit code smell, regardless it is supported. 
 
-Namespaces via single : 
-(namespace BigProject:subModule:module1
+Namespaces via /  
+(namespace BigProject/subModule/module1
 	(define someVar 400)
-	(define someGetter (someVar)))
+	(define someGetter [someVar]))
 
-(BigProject:subModule:module1:someGetter) = 400
+(BigProject/subModule/module1/someGetter) = 400
 
 access to all php primitives via PHP namespace - be warned that some primitives do not return values etc. i.e. array_splice
-(PHP:print_r '(a b c))
+(PHP/print_r '(a b c))
 
 In general I imagine any primitives would be wrapped up pretty quickly in other namespaces, macros etc. reducing the need to ever call them explicitly like this.
+
+Full quasiquote based macro system. 
+
+Tail call elimination via trampoline mechanism so that recursion is not a drag. 
 
 Ability to target the server and the browser with the same language (less context switching)
 
@@ -45,11 +45,16 @@ Soy will be written in Soy meaning that extending it is not that difficult.
 Debug hooks built into the language allowing stepping through code and getting meaningful traces, errors a possibility 
 
 dictionaries operate as functions i.e. 
-(define person {:age 30 
-                :weight 50
-                :eye-color 'blue})
+(define person {age: 30 
+                weight: 50
+                eye-color: 'blue})
 
 (print "person is " (person :age))
 
 ;this also works as a setter
 (person :weight 500)
+
+Further reader macro sugar to allow implicit access via dot notation i.e. 
+(print "person is " person.age)
+(person.age 500)
+

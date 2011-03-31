@@ -358,12 +358,9 @@ function group($tokens) {
 
 function parse($lispCode, &$env = array()) {
 	list($lispCode, $strings) = stripStrings($lispCode); 
-echo $lispCode . "\n";
-print_r($strings); 
 
 	$grouped = group(tokenize($lispCode));
 	
-	print_r($grouped);
 	//pull out all macros, compile, require so they may be applied by parser
 	
 	//loop recursively, expand macros
@@ -372,60 +369,8 @@ print_r($strings);
 	return implode(";\n", process($grouped, $env)) . ";\n";
 }
 
-if(isset($argv)) {
+if(isset($argv[1])) {
 	echo parse(file_get_contents($argv[1]));
-} else { 
-foreach(array(
-//	'(define x \'(a (b (c (d)))))',
-//	'(define list-example (list a b (list c d)))',
-//	'(define name \'shaun)',
-//	'(define list-of-items \'(a b c d -34))'
-	//'(define adder [x y z | [add x x -30 -200.45 {a b c d}]])'
-	//"'(a b c)", /*quote */
-	//'`(cat rat ,bat ,@shit)' /*quasiquote, unquote, unquote-splice*/,
-	//'(match /[words in regex]/ "some words here")' /*regex, string*/,
-	//";this is acomment that should be stripped
-	//(this should not be '(stripped))",
-	//'(this "has strings that should be replaced" \'notReplaced)',
-	//'({name "shaun" age 13} :name)'
-	//'(define adder [x | [y | add x y]])'
-	//'\'(a b (c d))',
-	//'(list \'a \'b \'c (+ 5 5))',
-	//'\'(a b (c d (+ 5 5)))',
-	//'`(a b ,x (c d))'
-	//'`(a)',
-	//'`(,\'a)',
-	//'`(,`a)',
-	//'`a',
-	//'`(a b (c d ,q))', 
-	//'`(a b c (,(+ 1 2)))',
-	//'`(,\'(a b c))',
-	//'`(,\'(a b c `a))',
-	//'`(,@(list \'a \'b \'c) d ,@e ,@\'(x y z) ,@`(a b ,c ,d e f ,@\'(g h i)))'
-//	'(defmacro comprehend (variable input predicate output)
-//	  ;apply output function
-//	  `(mapcar (lambda (,variable) ,output)
-//	    ;to each input that passes the predicate
-//	    (remove-if-not (lambda (,variable) ,predicate) ,input)))'
-	//'(filter [> _ 3] (map [* 2 _] 1..20))'
-//	'(x#)'	
-	//'({1 2 3 4} map: [x | + x 3])'
-//	'({name: \'peter age: 30})',
-//	'(dict 
-//		[x | > x 3] [alert \'someone])',
-//	'(person:shaun:age 30)',
-//	'((person :shaun) :age 30)',
-//	'(person:shaun:age person:peter:age)',
-//	'((person :shaun) :age ((person :peter) :age))'
-
-	//array_filter(function($_){ return $_ > 3;}, array_map(function($_){ return 2 * $_;}, range(1,20)));
-	'(print ([n | bcmul n 32] 300))'
-//	'`(test of ,(+ 5 5) ,@\'(a b c) ,unquotedSymbol ,@spliceSymbol normal ,@(+ 5 5) ,@`(subquasi words in here ,unquoteThis))'
-	) as $test) {
-	echo $test . "\n";
-	$code = parse($test);
-	echo $code; 
-	eval($code);
-	echo "\n\n";
-}
-}
+} else {
+	echo "Expects first argument to be valid name of file containing lisp forms.\n";
+} 
