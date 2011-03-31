@@ -1,0 +1,55 @@
+Soy aims to be a lisp for php 5.3 and javascript which provides a source -> source approach rather than an interpreter. 
+
+all functions should contain the lisp code required to build them, this is accomplished by the custom closure class. could allow this to be optimized away? 
+
+(define xer [x | + x x])
+(reflect xer :source) #(define xer (lambda (x) (+ x x))) # post macro expansion... allow pre-macro expansion info?
+(reflect xer :phpsource) #function($x) use (&$add) { return call_user_func_array($add, array(&$x, &$x)); }
+
+Primitive data types are:
+number -43.54
+string "string here"
+regex  /[regex]/
+symbol symbol+can-have?chars%a&plenty* 
+list (list a (b (c)))
+dict (dict age 40 
+		   height (ft 5))
+
+Syntactic sugar includes:
+"square lambdas": [x | [y | + x y]] = (lambda (x) (lambda (y) (+ x y)))
+"squiggly dicts": {age: 40 height: (ft 5)} = (dict (age 40) (height (ft 5)))
+
+As much as possible of the system is bootstrapped w/ macros, this includes things like the (. ) macro for working with objects
+(. x y z) = $x->y->z. 
+Many of the special forms are themselves macros.
+
+features include:
+full macro support - penalty for doing things like (apply macro-in-var-name '(a b c)) - as it has to actually expand the macro at run time instead of compile time. The chances of needing to do this are pretty slim and sort of have an implicit code smell, regardless it is supported. 
+
+Namespaces via single : 
+(namespace BigProject:subModule:module1
+	(define someVar 400)
+	(define someGetter (someVar)))
+
+(BigProject:subModule:module1:someGetter) = 400
+
+access to all php primitives via PHP namespace - be warned that some primitives do not return values etc. i.e. array_splice
+(PHP:print_r '(a b c))
+
+In general I imagine any primitives would be wrapped up pretty quickly in other namespaces, macros etc. reducing the need to ever call them explicitly like this.
+
+Ability to target the server and the browser with the same language (less context switching)
+
+Soy will be written in Soy meaning that extending it is not that difficult.
+
+Debug hooks built into the language allowing stepping through code and getting meaningful traces, errors a possibility 
+
+dictionaries operate as functions i.e. 
+(define person {:age 30 
+                :weight 50
+                :eye-color 'blue})
+
+(print "person is " (person :age))
+
+;this also works as a setter
+(person :weight 500)
