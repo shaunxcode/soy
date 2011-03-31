@@ -1,0 +1,13 @@
+(defun render-item 
+	   [li (div class: 'vote 
+	  	        (a href: (str "vote/" (_ id) "/up") "&uparr;")
+		        (div class: 'title-row 
+					 (a href: (_ link) (_ title)) 
+					 (span (str "(" (_ link) ")")))
+			    (div class: 'specs-row 
+				     (span (_ points)) 
+               	     'by 
+                  	 (a href: (str "user/" (_ author username)) (_ author username))
+                  	 (span (_ age) "hours ago")
+				  	 '|
+			  		 (a href: (str "item/" (_ id)) (_ comment-count) "comments")))])
