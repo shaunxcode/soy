@@ -25,8 +25,8 @@ sym = (s) ->
 	return symbol_table[s]
 
 #We need to quickly define the main special forms, including the pipe and semicolon.
-[_quote, _if, _set, _define, _lambda, _begin, _definemacro, _pipe, _semicolon] = 
-"quote if set! define lambda begin define-macro | ;".split(' ').map(sym)
+[_quote, _if, _set, _define, _lambda, _begin, _definemacro, _pipe, _semicolon, _colon] = 
+"quote if set! define lambda begin define-macro | ; :".split(' ').map(sym)
 
 #These symbols are for quasiquote support.
 [_quasiquote, _unquote, _unquotesplicing] =
@@ -48,12 +48,78 @@ class InPort
 			if @line in ['', undefined] then return eof_object
 			[_, token, @line] = @line.match @tokenizer
 
+			#Squiggly brackets
+			if "{" in token and token != "{"
+				#{a: b}
+				if token[0] is "{"
+					@line = token[1..-1] + @line
+					token = "{"
+				#a{b: c}
+				else
+					parts = token.split "{"
+					token = parts.shift()
+					@line = "{" + parts.join(" { ") + " " + @line
+
+			if "}" in token and token != "}"
+				# a]
+				if token[-1] is "}"
+					token = token[0..-2]
+					@line += " } "
+				# a]b
+				else
+					parts = token.split "}"
+					token = parts.shift()
+					@line = " } " + parts.join(" } ") + " " + @line
+
+			#Compensation for square brackets not being tokenized
+			if "[" in token and token != "["
+				# [b | c d]
+				if token[0] is "["
+					@line =  token[1..-1] + @line
+					token = "["
+				# a[a b | c d]
+				else 
+					parts = token.split "["
+					token = parts.shift()
+					@line = "[" + parts.join(" [ ") + " " + @line
+			
+			if "]" in token and token != "]"
+				# a]
+				if token[-1] is "]"
+					token = token[0..-2]
+					@line += " ] "
+				# a]b
+				else
+					parts = token.split "]"
+					token = parts.shift()
+					@line = " ] " + parts.join(" ] ") + " " + @line
+
+			if token is "["
+				token = "("
+				@line = "lambda " + @line
+			
+			if token is "]" 
+				token = ")"
+			
+			if token is "{"
+				token = "("
+				@line = "dict " + @line
+				
+			if token is "}"
+				token = ")"
+				
 			#We need to compensate for edge case of tokenizer e.g. "a|b".
 			if "|" in token and token != "|"
-				parts = token.split("|")
+				parts = token.split "|"
 				token = parts.shift()
-				@line = "| " + parts.join(" | ").trim() + ' ' + @line
-				
+				@line = "| " + parts.join(" | ") + ' ' + @line
+			
+			#we need to compensate for colon as well e.g. "a:b"
+			if ":" in token and token != ":"
+				parts = token.split ":"
+				token = parts.shift()
+				@line = ": " + parts.join(" : ") + ' ' + @line
+			
 			#We need to compensate for tokens ending with . e.g. "abc.".
 			if token[token.length-1] == '.'
 				token = token[0..token.length-2]
@@ -121,6 +187,7 @@ atom = (token) ->
 	return Number(token) if type(token) is 'Number' 
 	return _pipe if token is '|' 
 	return _semicolon if token is ';'
+	return _colon if token is ':'
 	return sym token
 
 #Convert an in-memory object back into a soy-readable string.
@@ -135,6 +202,11 @@ to_string = (x) ->
 
 #Walk tree of x, making optimizations/fixes, and signaling SyntaxError.
 expand = (x, toplevel = false) ->
+	#Expand any children first.
+	for token, pos in x 
+		if isa token, 'List'
+			x[pos] = expand token
+				
 	#For these next two expansions we use a for loop as we need to match the first instance and retain its position.
 
 	#If we find a semicolon this is where we transform to cascading form e.g. 
@@ -146,10 +218,19 @@ expand = (x, toplevel = false) ->
 
 	#If we find a pipe this is where we transform e.g. 
 	
-	#"a b | c." -> "(a (b) (c))".
+
+	unbox = (item) -> 
+		if item.length is 1 and isa item[0], 'List' then item = item[0]
+		item
+
+	#"a b | c." -> "(a (b) (c))".	
 	for token, pos in x 
 		if token is _pipe
-			return expand [x[0], expand(x[1..pos-1]), expand(x[pos+1..-1])]
+			return expand [x[0], unbox(x[1..pos-1]), unbox(x[pos+1..-1])]
+
+	for token, pos in x
+		if token is _colon
+			return (if pos > 1 then x[0..pos-2] else []).concat([['key-value-pair', x[pos-1], x[pos+1]]]).concat(expand x[pos+2..-1]);
 	return x
 
 #We only want to expose the parts of the module which are necessary.

@@ -1,0 +1,30 @@
+#!/usr/bin/env coffee
+
+rl = require 'readline'
+
+cli = rl.createInterface process.stdin, process.stdout, null
+
+cli.setPrompt "soy> "
+
+quit = ->
+	process.exit()
+	
+#Make sure normal ctrl + c breaks out
+cli.input.on 'keypress', (chunk, key) ->
+	if key && key.ctrl && key.name is 'c' 
+		console.log "\n"
+		quit()
+
+soy = require './soy'
+
+cli.on 'line', (line) ->
+	if line is 'quit' then quit()
+	
+	try 
+		console.log soy.to_string soy.parse(line)
+	catch e
+		console.log e
+
+	cli.prompt()
+
+cli.prompt()
