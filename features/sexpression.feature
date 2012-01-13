@@ -1,6 +1,6 @@
 Feature: S-Expressions
 	As a developer using soy
-	I want to be able to write normal s-expressions
+	I want to be able to write nested s-expressions
 
 	Scenario: writing the most basic s-expression 
 		Given the input "(a b)"

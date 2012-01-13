@@ -12,4 +12,4 @@ module.exports = ->
 	@Then /^the output should be "([^"]*)"$/, (expected_output, next) -> 
 		if @output is expected_output then next()
 
-		throw "Failure got " +  @output + " Should have been " + expected_output
+		throw "Failure got: " +  @output + " Should have been: " + @input + " -> " + expected_output

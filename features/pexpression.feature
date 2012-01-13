@@ -51,3 +51,8 @@ Feature: P-Expressions
 		Given the input "a b;c;d."
 		When the input is parsed
 		Then the output should be "(((a b) c) d)"
+
+	Scenario: writing a p-expression starting with an s-expression 
+		Given the input "(a b) c d."
+		When the input is parsed
+		Then the output should be "((a b) c d)"
