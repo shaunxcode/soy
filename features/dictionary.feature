@@ -6,3 +6,9 @@ Feature: dictionary syntax
 		Given the input "{a: b c: d}"
 		When the input is parsed
 		Then the output should be "(dict (key-value-pair a b) (key-value-pair c d))"
+		
+	#dictionary nesting
+	
+	#dictionary with manual keys
+	
+	#dictionary as function 
