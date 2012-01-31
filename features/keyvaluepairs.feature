@@ -9,7 +9,7 @@ Feature: key/value pairs
 	
 	Scenario: writing with space before colon and before next token
 		Given the input "(a :b)"
-		When then input is parsed
+		When the input is parsed
 		Then the output should be "((key-value-pair a b))"
 
 	Scenario: writing with many key values

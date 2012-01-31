@@ -25,8 +25,8 @@ sym = (s) ->
 	return symbol_table[s]
 
 #We need to quickly define the main special forms, including the pipe and semicolon.
-[_quote, _if, _set, _define, _lambda, _begin, _definemacro, _pipe, _semicolon, _colon] = 
-"quote if set! define lambda begin define-macro | ; :".split(' ').map(sym)
+[_quote, _if, _set, _define, _lambda, _begin, _definemacro, _pipe, _semicolon, _colon, _period, _comma] = 
+"quote if set! define lambda begin define-macro | ; : . ,".split(' ').map(sym)
 
 #These symbols are for quasiquote support.
 [_quasiquote, _unquote, _unquotesplicing] =
@@ -108,23 +108,13 @@ class InPort
 			if token is "}"
 				token = ")"
 				
-			#We need to compensate for edge case of tokenizer e.g. "a|b".
-			if "|" in token and token != "|"
-				parts = token.split "|"
-				token = parts.shift()
-				@line = "| " + parts.join(" | ") + ' ' + @line
-			
-			#we need to compensate for colon as well e.g. "a:b"
-			if ":" in token and token != ":"
-				parts = token.split ":"
-				token = parts.shift()
-				@line = ": " + parts.join(" : ") + ' ' + @line
-			
-			#We need to compensate for tokens ending with . e.g. "abc.".
-			if token[token.length-1] == '.'
-				token = token[0..token.length-2]
-				@line += ' . '
-			
+			for specialChar in ['.', ';', '~', ':', '|', ',']
+				do (specialChar) =>
+					if specialChar in token and token != specialChar
+						parts = token.split specialChar
+						token = parts.shift()
+						@line =  specialChar + " " + parts.join(" " + specialChar + " ") + " " + @line
+
 			return token unless token is ''
 
 #We are emulating python StringIO.
@@ -161,7 +151,7 @@ read = (inport) ->
 			while true
 				token = inport.next_token()
 				#Allow for ")" or "." to terminate list.
-				if token in [')', '.'] then return L else L.push(read_ahead(token))
+				if token is ')' then return L else L.push(read_ahead(token))
 		#Anything else not caught by the above must be an atom
 		else return atom(token)
 
@@ -188,6 +178,9 @@ atom = (token) ->
 	return _pipe if token is '|' 
 	return _semicolon if token is ';'
 	return _colon if token is ':'
+	return _period if token is '.'
+	return _tilda if token is '~'
+	return _comma if token is ','
 	return sym token
 
 #Convert an in-memory object back into a soy-readable string.
@@ -200,6 +193,10 @@ to_string = (x) ->
 	return Number(x) if isa x, "Number"
 	return String(x)
 
+unbox = (item) -> 
+	if item.length is 1 and isa item[0], 'List' then item = item[0]
+	item
+		
 #Walk tree of x, making optimizations/fixes, and signaling SyntaxError.
 expand = (x, toplevel = false) ->
 	#Expand any children first.
@@ -211,17 +208,29 @@ expand = (x, toplevel = false) ->
 
 	#If we find a semicolon this is where we transform to cascading form e.g. 
 	
-	#"a b;c." -> "((a b) c)".
+	#"(a b;c)" -> "(do (a b) (a c))".
 	for token, pos in x
 		if token is _semicolon
 			return expand [x[0..pos-1]].concat(x[pos+1..-1])
 
-	#If we find a pipe this is where we transform e.g. 
-	
+	#(a.b c) -> ((a (key b)) c)
+	#(a.b c.d e.f) -> ((a (key b)) (c (key d)) (e (key f)))
+	#(.b a) -> ((key b) a)
+	#(a b c.d) -> (a b (c (key d)))
+	#(a . (get-key 3) arg1 arg2) -> (a (key (get-key 3)) arg1 arg2)
+	#error if (a.) or (a b .)
+	for token, pos in x
+		if token is _period
+			if pos is 0 
+				if !x[1] then throw "Missing param for dot expression "
+				return expand [['key', x[1]]].concat(x[2..-1]) 
+			else
+				return expand (if pos > 1 then x[0..(pos - 2)] else []).concat([[x[pos-1], ['key', x[pos+1]]]]).concat(x[pos+2..-1])
 
-	unbox = (item) -> 
-		if item.length is 1 and isa item[0], 'List' then item = item[0]
-		item
+	#(a b,c) -> ((a b) c)
+	for token, pos in x
+		if token is _comma
+			return expand [x[0..pos-1]].concat(x[pos+1..-1])
 
 	#"a b | c." -> "(a (b) (c))".	
 	for token, pos in x 

@@ -1,3 +1,3 @@
-exports.World = -> {
-	soy: require('../../soy')
-}
+exports.World = (callback) ->
+	@soy = require('../../soy')
+	callback @
