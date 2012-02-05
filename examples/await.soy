@@ -1,0 +1,18 @@
+parallelSearch = (keywords, cb) ->
+  out = []
+  await 
+    for k,i in keywords
+      search k, defer out[i]
+  cb out
+
+#nearly direct conversion
+(def parallelSearch [keywords cb | 
+    let out: {}
+        await (each [k i | (search k) 
+                           (defer (out i))] 
+                    keywords)
+              (cb out)])
+
+#lets take our macros further and roll one w/ deferred-map 
+(def parallelSeach keywords cb |
+    (deferred-map search keywords cb))

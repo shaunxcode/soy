@@ -33,6 +33,9 @@
 
     "devDependencies": {
         "cucumber": "latest",
-        "docco": "latest"
-    }
+        "docco": "latest", 
+		"coffee-script": "latest"
+    },
+
+	"bin": {"soy-repl": "./bin/soy-repl"} 
 }

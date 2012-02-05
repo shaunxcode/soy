@@ -5,4 +5,9 @@ Feature: double quote strings
 	Scenario: standard string
 		Given the input: "hey I am a string" 
 		When the input is parsed
-		Then the output should be: "hey I am a string"
+		Then the output should be {"hey I am a string"}
+
+	Scenario: string interpolation
+		Given the input: "hey the number is #(+ 5 (+ 1 2)) ya dingus"
+		When the input is parsed
+		Then the output should be {(str "hey the number is " (+ 5 (+ 1 2)) " ya dingus")}

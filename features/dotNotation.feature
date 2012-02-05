@@ -37,3 +37,8 @@ Feature: dot notation
 		Given the input "(.b a)"
 		When the input is parsed 
 		Then the output should be "((key b) a)"
+		
+	Scenario: a decimal should not parse as dot notation
+		Given the input "(+ 5.5 -10.03)"
+		When the input is parsed 
+		Then the output should be "(+ 5.5 -10.03)"

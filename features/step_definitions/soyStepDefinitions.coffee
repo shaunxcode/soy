@@ -18,10 +18,12 @@ module.exports = ->
 			next()
 		else 
 			throw "Failure Input: #{@input} Expected: #{expected_output} Got: #{@output}"
-	
-	@Then /^the output should be: ("[^"]*")$/, (output, next) ->
-		
-		next()
+
+	@Then /^the output should be \{(.*)\}$/, (expected_output, next) -> 
+		if @output is expected_output
+			next()
+		else 
+			throw "Failure Input: #{@input} Expected: #{expected_output} Got: #{@output}"
 		
 	@Given /^the macro "([^"]*)"$/, (macro, next) ->
 		next.pending()

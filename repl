@@ -4,7 +4,7 @@ rl = require 'readline'
 
 cli = rl.createInterface process.stdin, process.stdout, null
 
-cli.setPrompt "soy> "
+cli.setPrompt "soy repl> "
 
 quit = ->
 	process.exit()
@@ -17,13 +17,23 @@ cli.input.on 'keypress', (chunk, key) ->
 
 soy = require './soy'
 
+readOnly = false
+
 cli.on 'line', (line) ->
 	if line is 'quit' then quit()
-	
-	try 
-		console.log soy.to_string soy.parse(line)
-	catch e
-		console.log e
+	if line is 'rp'
+		readOnly = true
+		console.log "Entering read, print loop"
+		cli.setPrompt "soy rpl> "
+	else if line is 'rep' 
+		readOnly = false
+		console.log "Entering read, eval, print loop"
+		cli.setPrompt "soy repl> "
+	else
+		try 
+			console.log soy.to_string(if readOnly then soy.desugar(soy.parse(line)) else soy.eval(soy.expand(soy.desugar(soy.parse(line)))))
+		catch e
+			console.log e
 
 	cli.prompt()
 
