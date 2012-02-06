@@ -7,6 +7,11 @@ Feature: dictionary syntax
 		When the input is parsed
 		Then the output should be "(dict (key-value-pair a b) (key-value-pair c d))"
 		
+	Scenario: arrays
+		Given the input "{1 2 5.5}"
+		When the input is parsed
+		Then the output should be "(list 1 2 5.5)"
+		
 	#dictionary nesting
 	
 	#dictionary with manual keys

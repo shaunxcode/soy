@@ -15,12 +15,14 @@ cli.input.on 'keypress', (chunk, key) ->
 		console.log "\n"
 		quit()
 
-soy = require './soy'
+soy = require '../soy'
 
 readOnly = false
 
 cli.on 'line', (line) ->
 	if line is 'quit' then quit()
+	if line is 'env'
+		console.log soy.topLevel
 	if line is 'rp'
 		readOnly = true
 		console.log "Entering read, print loop"

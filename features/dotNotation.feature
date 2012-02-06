@@ -5,40 +5,55 @@ Feature: dot notation
 	Scenario: writing a bare dot
 		Given the input "(.a)"
 		When the input is parsed
-		Then the output should be "((key a))"
+		Then the output should be "((quote a))"
 		
 	Scenario: writing with basic dot notation
 		Given the input "(a.b.c x y)"
 		When the input is parsed
-		Then the output should be "(((a (key b)) (key c)) x y)"
+		Then the output should be "(((a (quote b)) (quote c)) x y)"
 
 	Scenario: writing with basic dot notation
 		Given the input "(a.b)"
 		When the input is parsed
-		Then the output should be "((a (key b)))"
+		Then the output should be "((a (quote b)))"
 
 	Scenario: writing with basic dot notation as function application
 		Given the input "(a.b c)"
 		When the input is parsed
-		Then the output should be "((a (key b)) c)"
+		Then the output should be "((a (quote b)) c)"
 
 	
 	Scenario: writing with direct object 
 		Given the input "(print {a:1 b:0 c:9}.a)"
 		When the input is parsed
-		Then the output should be "(print ((dict (key-value-pair a 1) (key-value-pair b 0) (key-value-pair c 9)) (key a)))"
+		Then the output should be "(print ((dict (key-value-pair a 1) (key-value-pair b 0) (key-value-pair c 9)) (quote a)))"
 		
 	Scenario: multiple dot expressions as arguments 
 		Given the input "(a.b c.d (+ 1 2) e.f 5)"
 		When the input is parsed
-		Then the output should be "((a (key b)) (c (key d)) (+ 1 2) (e (key f)) 5)"
+		Then the output should be "((a (quote b)) (c (quote d)) (+ 1 2) (e (quote f)) 5)"
 		
 	Scenario: key first arg second
 		Given the input "(.b a)"
 		When the input is parsed 
-		Then the output should be "((key b) a)"
+		Then the output should be "((quote b) a)"
 		
 	Scenario: a decimal should not parse as dot notation
 		Given the input "(+ 5.5 -10.03)"
 		When the input is parsed 
 		Then the output should be "(+ 5.5 -10.03)"
+	
+	Scenario: accessing an object member
+		Given the input "(print {a:1 b:0 c:0}.a)"
+		When the input is evaluated 
+		Then the output should be "1"
+	
+	Scenario: execute a function which is an object member
+		Given the input "({square: [x | * x x]}.square 5)"
+		When the input is evaluated
+		Then the output should be "25"
+		
+	Scenario: pass object member as arg
+		Given the input "({square: [x | * x x]}.square {x: 5 y: 7}.y)"
+		When the input is evaluated
+		Then the output should be "49"

@@ -3,7 +3,7 @@
 # are directly cribbed from http://norvig.com/lispy.py.
 fs = require 'fs'
 
-None = false
+None = undefined
  
 #Symbols are any token which we use when expanding and interpreting .
 class Symbol
@@ -12,12 +12,15 @@ class Symbol
 symbol_table = {}
 
 sym = (s) ->
-	if s not in symbol_table then symbol_table[s] = new Symbol(s)
-	return symbol_table[s]
+	if not symbol_table[s] then symbol_table[s] = new Symbol(s)
+	symbol_table[s]
+
 
 #We need to quickly define the main special forms, including the pipe and semicolon.
-[_compile, _quote, _if, _set, _define, _lambda, _begin, _definemacro, _pipe, _semicolon, _colon, _period, _comma, _tilda, _and, _percent, _hat, _hash, _commaat] = 
-"compile quote if set! define lambda begin define-macro | ; : . , ~ & % ^ # ,@".split(' ').map(sym)
+specialForms = "compile key dict quote if set! define lambda key-value-pair begin define-macro | ; : . , ~ & % ^ # ,@".split(' ')
+[_compile, _key, _dict, _quote, _if, _set, _define, _lambda, _key_value_pair, 
+_begin, _definemacro, _pipe, _semicolon, _colon, _period, 
+_comma, _tilda, _and, _percent, _hat, _hash, _commaat] = specialForms.map sym
 
 #These symbols are for quasiquote support.
 [_quasiquote, _unquote, _unquotesplicing] =
@@ -155,7 +158,7 @@ class Env
 	
 	find: (key, couldBeNew = false) ->
 		if @values[to_string key] then return @
-		
+
 		if not @outer and not couldBeNew
 			throw "Could not find #{to_string key}"
 		if @outer
@@ -166,13 +169,11 @@ class Env
 					return @
 				else
 					throw e
-		@
-		
+
 	at: (key) ->
 		if @values[to_string key] then return @values[to_string key]
-		console.log @
-		throw "Could not find #{to_string key} in environment"
-	
+		throw "Could not find #{to_string key} in #{to_string dict_keys @values}"
+
 	setAt: (key, val) ->
 		if @outer and @outer.values[to_string key]
 			@outer.values[to_string key] = val
@@ -191,7 +192,6 @@ parse = (inport) ->
 	if type(inport) is "string" then inport = new InPort(new StringIO(inport))
 	read inport
  
-
 #Read a Soy expression from an input port.
 read = (inport) ->
 	read_ahead = (token) ->
@@ -231,9 +231,10 @@ type = do ->
 isa = (x, testType) ->
 	testType is "Symbol" and x instanceof Symbol \
 	or testType is "Procedure" and x instanceof Procedure \
-	or testType is "String" and type(x) is "String" \
-	or testType is "Number" and type(x) is "Number" \
-	or testType is "List" and type(x) is "array"
+	or testType is "String" and type(x) is "string" \
+	or testType is "Number" and type(x) is "number" \
+	or testType is "List" and type(x) is "array" \
+	or testType is "Object" and type(x) is "object"
 
 #Numbers become numbers; #t and #f are booleans; "..." string; We also specifically match pipe and semicolon, otherwise Symbol.
 atom = (token) ->
@@ -241,18 +242,17 @@ atom = (token) ->
 	return false if token is '#f'
 	return string_escape(token[1..-2]) if token[0] is '"'
 	return Number(token) if String(Number token) is token
-	return _pipe if token is '|' 
-	return _semicolon if token is ';'
-	return _colon if token is ':'
-	return _period if token is '.'
-	return _tilda if token is '~'
-	return _comma if token is ','
-	return _quote if token is 'quote'
-	return _set if token is 'set!'
-	return _define if token is 'define'
-	return _lambda if token is 'lambda'
-	
 	return sym token
+
+dict_keys = (x) ->
+	keys = []
+	for k, v of x
+		keys.push k
+	keys
+
+dict_to_string = (x) ->
+	"{#{(for k,v of x 
+		"#{to_string k}: #{if isa(v, "Object") then "<DICT>" else to_string(v)}").join " "}}"
 
 #Convert an in-memory object back into a soy-readable string.
 to_string = (x) ->
@@ -262,6 +262,8 @@ to_string = (x) ->
 	return string_encode(x) if isa x, "String"
 	return '(' + x.map(to_string).join(' ') + ')' if isa x, "List"
 	return Number(x) if isa x, "Number"
+	return x.toString() if isa x, "Procedure"
+	return dict_to_string(x) if isa x, "Object"
 	return String(x)
 
 unbox = (item) -> 
@@ -276,7 +278,7 @@ all = (pred, items) ->
 	for item in items
 		if not pred(item) then return false
 	return true
-	
+
 is_pair = (x) ->
 	isa(x, "List") and x.length is 2
 
@@ -327,6 +329,7 @@ add_globals = (env) ->
 		'read-char': -> readchar()
 		'read': -> read()
 		'value': (x) -> to_string x
+		'print': (x) -> to_string x
 		'write': (x, port) -> port.pr to_string(x)
 		'display': (x, port) -> port.pr if isa(x, "String") then x else to_string(x)
 
@@ -336,7 +339,7 @@ global_env = add_globals new Env()
 
 _eval = (x, env = false) ->
 	env or= global_env
-	
+
 	while true
 		if isa x, "Symbol"
 			return env.find(x).at(x)
@@ -347,6 +350,13 @@ _eval = (x, env = false) ->
 			return exp
 		else if x[0] is _compile
 			return compile x[1]
+		else if x[0] is _dict
+			dict = {}
+			console.log x[1..-1]
+			for kvp in x[1..-1]
+				do (kvp) ->
+					dict[to_string kvp[1]] = _eval kvp[2]
+			return dict
 		else if x[0] is _if
 			[_, test, conseq, alt] = x
 			return _eval((if _eval(test, env) then conseq else alt), env)
@@ -372,24 +382,23 @@ _eval = (x, env = false) ->
 			if isa proc, "Procedure"
 				x = proc.exp
 				env = new Env(proc.parms, exps, proc.env)
-			else
+			else if proc.apply
 				return proc.apply {}, exps
+			else
+				dkey = to_string exps.shift()
+				return proc[dkey]
 
 	
 desugar = (x) ->
 	#desugarization 
-	
 	#if x[0] is '"'
-	
 	#desguar any children first.
 	for token, pos in x 
 		if isa token, 'List'
 			x[pos] = desugar token
-			
+
 	#For these next two expansions we use a for loop as we need to match the first instance and retain its position.
-
 	#If we find a semicolon this is where we transform to cascading form e.g. 
-
 	#"(a b;c)" -> "(do (a b) (a c))".
 	for token, pos in x
 		if token is _semicolon
@@ -405,26 +414,26 @@ desugar = (x) ->
 		if token is _period
 			if pos is 0 
 				if !x[1] then throw "Missing param for dot expression "
-				return desugar [['key', x[1]]].concat(x[2..-1]) 
+				return desugar [[_key, x[1]]].concat(x[2..-1]) 
 			else
-				return desugar (if pos > 1 then x[0..(pos - 2)] else []).concat([[x[pos-1], ['key', x[pos+1]]]]).concat(x[pos+2..-1])
+				return desugar (if pos > 1 then x[0..(pos - 2)] else []).concat([[x[pos-1], [_key, x[pos+1]]]]).concat(x[pos+2..-1])
 
 	#(a b,c) -> ((a b) c)
 	for token, pos in x
 		if token is _comma
 			return desugar [x[0..pos-1]].concat(x[pos+1..-1])
 
-	#"a b | c." -> "(a (b) (c))".	
+	#"(a b | c)" -> "(a (b) (c))"	
 	for token, pos in x 
 		if token is _pipe
 			return desugar [x[0], unbox(x[1..pos-1]), unbox(x[pos+1..-1])]
 
 	for token, pos in x
 		if token is _colon
-			return (if pos > 1 then x[0..pos-2] else []).concat([['key-value-pair', x[pos-1], x[pos+1]]]).concat(desugar x[pos+2..-1]);
+			return (if pos > 1 then x[0..pos-2] else []).concat([[_key_value_pair, x[pos-1], x[pos+1]]]).concat(desugar x[pos+2..-1]);
 
 	return x
-	
+
 #Walk tree of x, making optimizations/fixes, and signaling SyntaxError.
 expand = (x, toplevel = false) ->
 	if isa x, "List"
@@ -435,6 +444,8 @@ expand = (x, toplevel = false) ->
 	else if x[0] is _quote
 		demand x, x.length is 2
 		return x
+	else if x[0] is _key
+		return [_quote, x[1]]
 	else if x[0] is _if
 		if x.length is 3
 			x.push None
@@ -519,9 +530,9 @@ llet = (args...) ->
 	demand x, all(((b) -> isa(b, "List") and b.length is 2 and isa(b[0], "Symbol")), bindings), "illegal binding list"
 	[vars, vals] = unzip bindings
 	[[lambda, vars, (expand(b) for b in body)]].concat(expand val for val in bindings)
-	
 
 #We only want to expose the parts of the module which are necessary.
+exports.topLevel = global_env
 exports.parse = parse
 exports.read = read
 exports.desugar = desugar

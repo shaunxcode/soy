@@ -10,17 +10,17 @@ module.exports = ->
 		next()
 
 	@When /^the input is parsed/, (next) ->
-		@output = @soy.to_string @soy.parse(@input)
+		@output = @soy.to_string @soy.expand @soy.desugar @soy.parse @input
 		next()
 		
 	@Then /^the output should be "([^"]*)"$/, (expected_output, next) -> 
-		if @output is expected_output
+		if String(@output) is String(expected_output)
 			next()
 		else 
 			throw "Failure Input: #{@input} Expected: #{expected_output} Got: #{@output}"
 
 	@Then /^the output should be \{(.*)\}$/, (expected_output, next) -> 
-		if @output is expected_output
+		if String(@output) is String(expected_output)
 			next()
 		else 
 			throw "Failure Input: #{@input} Expected: #{expected_output} Got: #{@output}"
@@ -32,7 +32,8 @@ module.exports = ->
 		next.pending()
 	
 	@When /^the input is evaluated$/, (next) ->
-		next.pending()
+		@output = @soy.to_string @soy.eval @soy.expand @soy.desugar @soy.parse @input
+		next()
 		
 	@Then /^the variable "([^"]*)" should contain "([^"]*)"$/, (varName, property, next) -> 
 		next.pending()
