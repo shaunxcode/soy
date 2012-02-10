@@ -17,9 +17,9 @@ sym = (s) ->
 
 
 #We need to quickly define the main special forms, including the pipe and semicolon.
-specialForms = "compile key dict quote if set! define lambda key-value-pair begin define-macro | ; : . , ~ & % ^ # ,@".split(' ')
-[_compile, _key, _dict, _quote, _if, _set, _define, _lambda, _key_value_pair, 
-_begin, _definemacro, _pipe, _semicolon, _colon, _period, 
+specialForms = "compile key dict cons append list quote if set! define lambda key-value-pair begin defmacro | ; : . , ~ & % ^ # ,@".split(' ')
+[_compile, _key, _dict, _cons, _append, _list, _quote, _if, _set, _define, _lambda, _key_value_pair, 
+_begin, _defmacro, _pipe, _semicolon, _colon, _period, 
 _comma, _tilda, _and, _percent, _hat, _hash, _commaat] = specialForms.map sym
 
 #These symbols are for quasiquote support.
@@ -118,6 +118,8 @@ class InPort
 
 			for specialChar in ['|', ';', ':', '.', ',@', ',', '~', '&', '%', '^', '#', ]
 				#e.g. if we are ,@ don't keep going and find , 
+				if String(Number token) is token then break
+				
 				if token is specialChar then break
 				
 				if specialChar in token and token != specialChar
@@ -185,7 +187,10 @@ class Procedure
 	
 	toString: ->
 		to_string [_lambda, @parms, @exp]
-
+	
+	applyProc: (args) ->
+		_eval @exp, new Env(@parms, args, @env)
+		
 SyntaxError = (msg) -> msg
 
 parse = (inport) ->
@@ -280,7 +285,7 @@ all = (pred, items) ->
 	return true
 
 is_pair = (x) ->
-	isa(x, "List") and x.length is 2
+	isa(x, "List") and x.length > 0
 
 cons = (x, y) -> 
 	[x].concat y
@@ -352,7 +357,6 @@ _eval = (x, env = false) ->
 			return compile x[1]
 		else if x[0] is _dict
 			dict = {}
-			console.log x[1..-1]
 			for kvp in x[1..-1]
 				do (kvp) ->
 					dict[to_string kvp[1]] = _eval kvp[2]
@@ -386,6 +390,10 @@ _eval = (x, env = false) ->
 				return proc.apply {}, exps
 			else
 				dkey = to_string exps.shift()
+				#for negative index look up 
+				if isa(dkey, "Number") and dkey < 0
+					dkey = proc.length + dkey
+
 				return proc[dkey]
 
 	
@@ -438,7 +446,7 @@ desugar = (x) ->
 expand = (x, toplevel = false) ->
 	if isa x, "List"
 		demand x, x.length > 0
-
+		
 	if not isa x, "List"
 		return x
 	else if x[0] is _quote
@@ -446,6 +454,12 @@ expand = (x, toplevel = false) ->
 		return x
 	else if x[0] is _key
 		return [_quote, x[1]]
+	else if x[0] is _dict
+		for atom, pos in x[1..-1] 
+			if not(isa atom, "List") or (isa(atom, "List") and atom[0] isnt _key_value_pair)
+				x[0] = _list
+			x[pos+1] = expand atom
+		return x
 	else if x[0] is _if
 		if x.length is 3
 			x.push None
@@ -456,7 +470,7 @@ expand = (x, toplevel = false) ->
 		v = x[1]
 		demand x, isa(v, "Symbol"), "Can set! only a symbol"
 		return [_set, v, expand(x[2])]
-	else if x[0] is _define or x[0] is _definemacro
+	else if x[0] is _define or x[0] is _defmacro
 		demand x, x.length >= 3
 		[def, v, body...] = x
 		if isa v, "List"
@@ -466,11 +480,11 @@ expand = (x, toplevel = false) ->
 			demand x, x.length is 3
 			demand x, isa(v, "Symbol"), "can define only a symbol"
 			exp = expand x[2]
-			if def is _definemacro
+			if def is _defmacro
 				demand x, toplevel, "define-macro only allowed at top level"
 				proc = _eval(exp)
-				demand x, type(proc) is "Function", "macro must be a procedure"
-				macro_table[v] = proc
+				demand x, isa(proc, "Procedure"), "macro must be a procedure"
+				macro_table[to_string v] = proc
 				return None
 			else 
 				return [_define, v, exp]
@@ -488,8 +502,8 @@ expand = (x, toplevel = false) ->
 	else if x[0] is _quasiquote
 		demand x, x.length is 2
 		return expand_quasiquote x[1]
-	else if isa(x[0], "Symbol") and macro_table[x[0]]
-		return expand macro_table[x[0]].apply({}, x[1..-1]), toplevel
+	else if isa(x[0], "Symbol") and macro_table[to_string x[0]]
+		return expand macro_table[to_string x[0]].applyProc(x[1..-1]), toplevel
 	else
 		return (expand leaf for leaf in x)
 
@@ -498,14 +512,17 @@ expand_quasiquote = (x) ->
 	
 	demand x, x[0] isnt _unquotesplicing, "can't splice here"
 	
-	if x[0] is unquote
+	if x[0] is _unquote
 		demand x, x.length is 2
 		return x[1]
 	else if is_pair(x[0]) and x[0][0] is _unquotesplicing
 		demand x[0], x[0].length is 2
 		return [_append, x[0][1], expand_quasiquote x[1..-1]]
 	else
-		return if x[0] is quasiquote then expand_quasiquote(expand_quasiquote(x[1..-1])[1]) else [_cons, expand_quasiquote(x[0]), expand_quasiquote(x[1..-1])]
+		if x[0] is _quasiquote
+			return expand_quasiquote(expand_quasiquote(x[1..-1])[1]) 
+		else 
+			return [_cons, expand_quasiquote(x[0]), expand_quasiquote(x[1..-1])]
 
 zip = (a, b) ->
 	result = {}

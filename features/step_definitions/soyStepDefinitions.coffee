@@ -32,7 +32,7 @@ module.exports = ->
 		next.pending()
 	
 	@When /^the input is evaluated$/, (next) ->
-		@output = @soy.to_string @soy.eval @soy.expand @soy.desugar @soy.parse @input
+		@output = @soy.to_string @soy.eval @soy.expand(@soy.desugar(@soy.parse @input), true)
 		next()
 		
 	@Then /^the variable "([^"]*)" should contain "([^"]*)"$/, (varName, property, next) -> 

@@ -11,9 +11,28 @@ Feature: dictionary syntax
 		Given the input "{1 2 5.5}"
 		When the input is parsed
 		Then the output should be "(list 1 2 5.5)"
-		
-	#dictionary nesting
 	
-	#dictionary with manual keys
+	Scenario: nested dictionary
+		Given the input "(value {peter: {age: 30 height: 6.5}}.peter.height)"
+		When the input is evaluated
+		Then the output should be "6.5"
+
+	Scenario: nested list in dictionary
+		Given the input "(car {peter: {age: 30 height: 6.5 scores: {99 100 1543}}}.peter.scores)"
+		When the input is evaluated
+		Then the output should be "99"
+
+	Scenario: list access via index
+		Given the input "({1 2 3} 0)"
+		When the input is evaluated
+		Then the output should be "1"
 	
-	#dictionary as function 
+	Scenario: list access end
+		Given the input "({1 2 3} -1)"
+		When the input is evaluated
+		Then the output should be "3"
+	
+	Scenario: list access via nested dot notation
+		Given the input "({{+ *} {/ -}}.-1.-1 5 6)"
+		When the input is evaluated 
+		Then the output should be "-1"

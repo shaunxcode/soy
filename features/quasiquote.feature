@@ -5,24 +5,30 @@ Feature: S-Expressions
 	Scenario: writing the most basic quasiquote
 		Given the input "`(a b)"
 		When the input is parsed
-		Then the output should be "(quasiquote (a b))"
+		Then the output should be "(cons (quote a) (cons (quote b) (quote ())))"
 		
 	Scenario: writing an unquote expression
 		Given the input "`(a ,x b ,x)"
 		When the input is parsed
-		Then the output should be "(quasiquote (a (unquote x) b (unquote x)))"
+		Then the output should be "(cons (quote a) (cons x (cons (quote b) (cons x (quote ())))))"
 		
 	Scenario: writing a quasiquote with unquote
-		Given the input "(do (def x 6) `(a ,x b ,x))"
+		Given the input "(define x 6)"
 		When the input is evaluated
-		Then the output should be "(list a 6 b 6)"
+		 And the input "`(a ,x b ,x)"
+		 And the input is evaluated
+		Then the output should be "(a 6 b 6)"
 		
 	Scenario: writing a quasiquote with unquote splicing
-		Given the input "(do (def x {4 5 6}) `(1 2 3 ,@x))"
+		Given the input "(define x {4 5 6})"
 		When the input is evaluated
-		Then the output should be "(list 1 2 3 4 5 6)"
+		 And the input "`(1 2 3 ,@x)"
+		 And the input is evaluated
+		Then the output should be "(1 2 3 4 5 6)"
 		
-	Scenario: writing nested quasiquotes should work
-		Given the input "(do (def x {a b c}) `(x y (,x (y ,@x))))"
-		When the input is parsed
-		Then the output should be "(list x y ((a b c) (y a b c)))"
+	Scenario: writing nested list quasiquotes should work
+		Given the input "(define x {'a 'b 'c})" 
+		When the input is evaluated
+		 And the input "`(x y (,x (y ,@x)))"
+		 And the input is evaluated
+		Then the output should be "(x y ((a b c) (y a b c)))"
