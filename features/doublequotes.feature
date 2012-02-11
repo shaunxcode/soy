@@ -7,7 +7,7 @@ Feature: double quote strings
 		When the input is parsed
 		Then the output should be {"hey I am a string"}
 
-	Scenario: string interpolation
-		Given the input: "hey the number is #(+ 5 (+ 1 2)) ya dingus"
-		When the input is parsed
-		Then the output should be {(str "hey the number is " (+ 5 (+ 1 2)) " ya dingus")}
+	Scenario: string building
+		Given the input: {(str "hey the number is " (+ 5 (+ 1 2)) " ya dingus")}
+		When the input is evaluated
+		Then the output should be {"hey the number is 8 ya dingus"}

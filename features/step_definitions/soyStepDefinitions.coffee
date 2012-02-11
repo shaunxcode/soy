@@ -4,7 +4,11 @@ module.exports = ->
 	@Given /^the input: ("[^"]*")$/, (input, next) ->
 		@input = input
 		next()
-		
+
+	@Given /^the input: \{(.*)\}$/, (input, next) ->
+		@input = input
+		next()
+					
 	@Given /^the input "([^"]*)"$/, (input, next) ->
 		@input = input
 		next()

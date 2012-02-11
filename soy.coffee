@@ -177,10 +177,12 @@ class Env
 		throw "Could not find #{to_string key} in #{to_string dict_keys @values}"
 
 	setAt: (key, val) ->
-		if @outer and @outer.values[to_string key]
-			@outer.values[to_string key] = val
+		if isa(key, "Symbol") then key = to_string key
+			
+		if @outer and @outer.values[key]
+			@outer.values[key] = val
 		else
-			@values[to_string key] = val
+			@values[key] = val
 
 class Procedure
 	constructor: (@parms, @exp, @env) ->
@@ -219,8 +221,8 @@ read = (inport) ->
 	token1 = inport.next_token()
 	if token1 is eof_object then return eof_object else read_ahead(token1)
 
-string_escape = (string) -> "\"#{string}\""
-string_encode = (string) -> string
+string_escape = (string) -> string
+string_encode = (string) -> "\"#{string}\""
 
 #This is the recomended approach for determining types even with in coffee.
 type = do ->
@@ -254,6 +256,12 @@ dict_keys = (x) ->
 	for k, v of x
 		keys.push k
 	keys
+
+dict_values = (x) ->
+	vals = []
+	for k, v of x
+		vals.push v
+	vals
 
 dict_to_string = (x) ->
 	"{#{(for k,v of x 
@@ -294,7 +302,7 @@ macro_table = {}
 
 add_globals = (env) ->
 	env.update
-		'+': (x, y) -> x + y
+		'+': (x, y) -> Number(x) + Number(y)
 		'-': (x, y) -> x - y
 		'*': (x, y) -> x * y
 		'/': (x, y) -> x / y
@@ -320,7 +328,8 @@ add_globals = (env) ->
 		'boolean?': (x) -> isa x, "Boolean"
 		'pair?': (x) -> is_pair x
 		'port?': (x) -> isa x, "File"
-		'apply': (args...) -> args[0].call {}, args[1..-1]
+		'str': (args...) -> args.join('')
+		'apply': (func, args) -> func.apply {}, args
 		'eval': (x) -> _eval expand(x)
 		'load': (x) -> load x 
 		'compile': (x) -> compile expand(x)
@@ -389,13 +398,25 @@ _eval = (x, env = false) ->
 			else if proc.apply
 				return proc.apply {}, exps
 			else
-				dkey = to_string exps.shift()
-				#for negative index look up 
-				if isa(dkey, "Number") and dkey < 0
-					dkey = proc.length + dkey
+				if exps.length is 1
+					dkey = to_string exps.shift()
+					
+					if isa(dkey, "Number") then dkey = parseInt(dkey)
 
-				return proc[dkey]
+					if isa(dkey, "Number") and dkey < 0
+						dkey = proc.length + dkey
 
+					return proc[dkey]
+				
+				if exps.length is 2
+					dkey1 = to_string exps.shift()
+					dkey2 = to_string exps.shift()
+					if isa(dkey1, "Number") then dkey1 = parseInt(dkey1)
+					if isa(dkey2, "Number") then dkey2 = parseInt(dkey2)
+					
+					return proc[dkey1..dkey2]
+
+				throw (to_string proc) + " can not be used as function"
 	
 desugar = (x) ->
 	#desugarization 
@@ -434,7 +455,12 @@ desugar = (x) ->
 	#"(a b | c)" -> "(a (b) (c))"	
 	for token, pos in x 
 		if token is _pipe
-			return desugar [x[0], unbox(x[1..pos-1]), unbox(x[pos+1..-1])]
+			body = x[pos+1..-1]
+			if not(is_pair body[0]) and body.length is 1
+				body = body[0]
+			else 
+				body = unbox body
+			return desugar [x[0], unbox(x[1..pos-1]), body]
 
 	for token, pos in x
 		if token is _colon
@@ -497,8 +523,21 @@ expand = (x, toplevel = false) ->
 		demand x, x.length >= 3
 		[lam, vars, body...] = x
 		demand x, ((isa(vars, "List") and all(((v) -> isa v, "Symbol"), vars)) or isa(vars, "Symbol")), "illegal lambda argument list"
-		exp = if body.length is 1 then body[0] else [_begin].concat(body)
-		return [_lambda, vars, expand(exp)]
+
+		bodyExp = expand(if body.length is 1 then body[0] else [_begin].concat(body))
+				
+		if _and in vars
+			if vars[vars.length - 2] isnt _and then throw "& must be before last arg"
+			newBody = []
+			for arg, pos in vars
+				if arg is _and then break
+				newBody.push [_key_value_pair, arg, [sym("_s_args"), pos]]
+			newBody.push [_key_value_pair, vars[pos + 1], [sym("_s_args"), pos, -1]]
+			newBody.push bodyExp
+			vars = sym("_s_args")
+			bodyExp = macro_table["let"].applyProc newBody
+
+		return [_lambda, vars, bodyExp]
 	else if x[0] is _quasiquote
 		demand x, x.length is 2
 		return expand_quasiquote x[1]
@@ -539,15 +578,28 @@ unzip = (arr) ->
 		b.push x[1]
 	[a, b]
 
-llet = (args...) ->
-	x = cons _let, args
-	demand x, args.length > 1
-	bindings = args[0]
-	body = args[1..-1]
-	demand x, all(((b) -> isa(b, "List") and b.length is 2 and isa(b[0], "Symbol")), bindings), "illegal binding list"
-	[vars, vals] = unzip bindings
-	[[lambda, vars, (expand(b) for b in body)]].concat(expand val for val in bindings)
+macro_table['let'] = applyProc: (args) ->
+	vars = []
+	vals = []
+	for atom, pos in args
+		if not(is_pair atom) or not(atom[0] is _key_value_pair) then break
+		vars.push atom[1]
+		vals.push atom[2]
+	
+	body = args[pos..-1]
+	if not(is_pair body[0]) and body.length is 1
+		body = body[0]
+	else 
+		body = unbox body
 
+	[[_lambda, vars, body]].concat vals
+	
+macro_table['let*'] = applyProc: (args) ->
+	if is_pair(args[0]) and args[0][0] is _key_value_pair
+		return [[_lambda, [args[0][1]], macro_table['let*'].applyProc args[1..-1]], args[0][2]]
+	else
+		return args
+	
 #We only want to expose the parts of the module which are necessary.
 exports.topLevel = global_env
 exports.parse = parse

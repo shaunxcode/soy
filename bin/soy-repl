@@ -33,7 +33,7 @@ cli.on 'line', (line) ->
 		cli.setPrompt "soy repl> "
 	else
 		try 
-			console.log soy.to_string(if readOnly then soy.desugar(soy.parse(line)) else soy.eval(soy.expand(soy.desugar(soy.parse(line)), true)))
+			console.log soy.to_string(if readOnly then soy.expand(soy.desugar(soy.parse(line))) else soy.eval(soy.expand(soy.desugar(soy.parse(line)), true)))
 		catch e
 			console.log e
 
