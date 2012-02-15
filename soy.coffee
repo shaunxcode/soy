@@ -149,13 +149,14 @@ class Env
   				throw "Expected #{to_string(parms)}, given #{to_string(args)}"
 
 			if parms.length > 0
-				@update zip parms, args
+				@values = zip parms, args
+
 	toString: ->
 		to_string(for key, val of @values
 			push([key, "#{to_string val}\n"]))
 		
 	update: (values) ->
-		@setAt key, val for key, val of values
+		@setAt(key, val, true) for key, val of values
 		@
 	
 	find: (key, couldBeNew = false) ->
@@ -173,6 +174,7 @@ class Env
 					return @
 				else
 					throw e
+		@
 
 	at: (key) ->
 		if isa(key, "Symbol") then key = to_string key
@@ -180,13 +182,10 @@ class Env
 		if @values[key]? then return @values[key]
 		throw "Could not find #{key} in #{to_string dict_keys @values}"
 
-	setAt: (key, val) ->
+	setAt: (key, val, couldBeNew = false) ->
 		if isa(key, "Symbol") then key = to_string key
-			
-		if @outer and @outer.values[key]?
-			@outer.values[key] = val
-		else
-			@values[key] = val
+
+		@find(key, couldBeNew).values[key] = val
 
 class Procedure
 	constructor: (@parms, @exp, @env) ->
@@ -390,7 +389,7 @@ _eval = (x, env = false) ->
 			return None
 		else if x[0] is _define
 			[_, key, exp] = x
-			env.setAt(key, _eval(exp, env))
+			env.setAt(key, _eval(exp, env), true)
 			return None
 		else if x[0] is _lambda
 			[_, vars, exp] = x
