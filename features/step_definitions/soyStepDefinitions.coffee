@@ -40,7 +40,10 @@ module.exports = ->
 		next()
 		
 	@Then /^the variable "([^"]*)" should contain "([^"]*)"$/, (varName, property, next) -> 
-		next.pending()
+		if not @soy.topLevel.find(varName).at(varName)
+			throw "Could not found #{varName}"
+		else
+			next()
 	
 	@When /^the macro is expanded$/, (next) ->
 		next.pending()

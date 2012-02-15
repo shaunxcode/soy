@@ -24,9 +24,9 @@ Feature: dot notation
 
 	
 	Scenario: writing with direct object 
-		Given the input "(print {a:1 b:0 c:9}.a)"
-		When the input is parsed
-		Then the output should be "(print ((dict (key-value-pair a 1) (key-value-pair b 0) (key-value-pair c 9)) (quote a)))"
+		Given the input "(value {a:1 b:0 c:9}.a)"
+		When the input is evaluated
+		Then the output should be "1"
 		
 	Scenario: multiple dot expressions as arguments 
 		Given the input "(a.b c.d (+ 1 2) e.f 5)"

@@ -1,0 +1,59 @@
+life = function(
+  input, // input array
+  size, // square stage size (width and height)
+  output, i, neighbours // placeholders
+){
+  // cycle through cells
+  for (
+    output = [i = size*size];
+    i--;
+    output[i] =
+      // alive if it has 3 neighbours
+      neighbours == 3 ||
+      // stay alive if cell has 2 neighbours
+      (input[i] && neighbours == 2)
+  ) {
+    neighbours =
+      // count neighbours
+      input[i-size-1] + input[i-size] + input[i-size+1] +
+      input[i -1] + input[i +1] +
+      input[i+size-1] + input[i+size] + input[i+size+1];
+  }
+  
+  return output;
+}
+
+(define dirs {{-1 -1} {-1 0} {-1 1} {0 -1} {0 1} {1 -1} {1 0} {1 1}})
+
+(define next-universe [universe | 
+  let neighbor-sum: [x y | sum (map [m | (board (+ x m.0)) (+ y m.1)] dirs)]
+      next-cell: [x y |
+        let cur: ((board x) y)
+            ns: (neighbor-sum x y)
+            cond ((and (= cur 1) (or (< ns 2) (> ns 3))) 0)
+                  ((and (= cur 0) (= ns 3)) 1)
+                  (else cur)]
+      row: [n out | 
+        let w: (length (car universe))
+            if (= (length out) w)
+               out
+               (row n
+                    (cons (next-cell (- w (length out)) n)
+                          out))]
+
+      int-range: [bot top | 
+        if (> bot top) '()
+           (cons bot (int-range (+ bot 1) top))]
+      map [n | row n '()] 
+          (int-range 1 (length universe))])
+
+       
+
+(define life [ input size output | 
+  let output: []
+      max: (* size size)
+      iter: [i | 
+        if (eq? i max)
+           output
+           (begin
+             (   

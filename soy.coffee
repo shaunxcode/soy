@@ -104,7 +104,7 @@ class InPort
 
 			if token is "["
 				token = "("
-				@line = "lambda " + @line
+				@line = "squarelambda " + @line
 			
 			if token is "]" 
 				token = ")"
@@ -116,7 +116,7 @@ class InPort
 			if token is "}"
 				token = ")"
 
-			for specialChar in ['|', ';', ':', '.', ',@', ',', '~', '&', '%', '^', '#', ]
+			for specialChar in ['|', ';', ':', '.', ',@', ',', '~', '&', '%', '^']
 				#e.g. if we are ,@ don't keep going and find , 
 				if String(Number token) is token then break
 				
@@ -159,10 +159,12 @@ class Env
 		@
 	
 	find: (key, couldBeNew = false) ->
-		if @values[to_string key] then return @
+		if isa(key, "Symbol") then key = to_string key
+		
+		if @values[key]? then return @
 
 		if not @outer and not couldBeNew
-			throw "Could not find #{to_string key}"
+			throw "Could not find #{key}"
 		if @outer
 			try
 				return @outer.find key
@@ -173,13 +175,15 @@ class Env
 					throw e
 
 	at: (key) ->
-		if @values[to_string key] then return @values[to_string key]
-		throw "Could not find #{to_string key} in #{to_string dict_keys @values}"
+		if isa(key, "Symbol") then key = to_string key
+		
+		if @values[key]? then return @values[key]
+		throw "Could not find #{key} in #{to_string dict_keys @values}"
 
 	setAt: (key, val) ->
 		if isa(key, "Symbol") then key = to_string key
 			
-		if @outer and @outer.values[key]
+		if @outer and @outer.values[key]?
 			@outer.values[key] = val
 		else
 			@values[key] = val
@@ -263,9 +267,10 @@ dict_values = (x) ->
 		vals.push v
 	vals
 
-dict_to_string = (x) ->
+dict_to_string = (x, haveSeen = []) ->
+	
 	"{#{(for k,v of x 
-		"#{to_string k}: #{if isa(v, "Object") then "<DICT>" else to_string(v)}").join " "}}"
+		"#{to_string k}: #{if isa(v, "Object") then (if v in haveSeen then "<CIRCULAR>" else dict_to_string(v, haveSeen.concat([v]))) else to_string(v)}").join " "}}"
 
 #Convert an in-memory object back into a soy-readable string.
 to_string = (x) ->
@@ -323,6 +328,11 @@ add_globals = (env) ->
 		'append': (x, y) -> x.concat y
 		'list': (args...) -> args
 		'list?': (x) -> isa x, "List"
+		'dict': (args...) -> 
+			d = {}
+			for kv in args
+				d[to_string kv.key] = kv.value
+			d
 		'null?': (x) -> x.length is 0
 		'symbol?': (x) -> isa x, "Symbol"
 		'boolean?': (x) -> isa x, "Boolean"
@@ -342,10 +352,11 @@ add_globals = (env) ->
 		'eof-object?': (x) -> x is _eof_object
 		'read-char': -> readchar()
 		'read': -> read()
-		'value': (x) -> to_string x
+		'value': (x) -> x
 		'print': (x) -> to_string x
 		'write': (x, port) -> port.pr to_string(x)
 		'display': (x, port) -> port.pr if isa(x, "String") then x else to_string(x)
+		'require': (f) -> require to_string f
 
 compile = (ast) -> 
 
@@ -368,7 +379,7 @@ _eval = (x, env = false) ->
 			dict = {}
 			for kvp in x[1..-1]
 				do (kvp) ->
-					dict[to_string kvp[1]] = _eval kvp[2]
+					dict[to_string kvp.key] = _eval(kvp.value, env)
 			return dict
 		else if x[0] is _if
 			[_, test, conseq, alt] = x
@@ -426,6 +437,12 @@ desugar = (x) ->
 		if isa token, 'List'
 			x[pos] = desugar token
 
+	if x[0] is sym("squarelambda")
+		if not(_pipe in x)
+			return desugar [_lambda, _pipe].concat x[1..-1]
+		else 
+			return desugar [_lambda].concat x[1..-1]
+		
 	#For these next two expansions we use a for loop as we need to match the first instance and retain its position.
 	#If we find a semicolon this is where we transform to cascading form e.g. 
 	#"(a b;c)" -> "(do (a b) (a c))".
@@ -480,6 +497,8 @@ expand = (x, toplevel = false) ->
 		return x
 	else if x[0] is _key
 		return [_quote, x[1]]
+	else if x[0] is _key_value_pair
+		return {key: expand(x[1]), value: expand(x[2])}
 	else if x[0] is _dict
 		for atom, pos in x[1..-1] 
 			if not(isa atom, "List") or (isa(atom, "List") and atom[0] isnt _key_value_pair)
