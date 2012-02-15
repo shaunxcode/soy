@@ -143,7 +143,7 @@ class Env
 		@values = {}
 		@outer = outer
 		if isa parms, "Symbol"
-			@setAt parms, args
+			@values[to_string parms] = args
 		else
 			if args.length isnt parms.length
   				throw "Expected #{to_string(parms)}, given #{to_string(args)}"
@@ -156,7 +156,7 @@ class Env
 			push([key, "#{to_string val}\n"]))
 		
 	update: (values) ->
-		@setAt(key, val, true) for key, val of values
+		@values = values
 		@
 	
 	find: (key, couldBeNew = false) ->
@@ -222,7 +222,7 @@ read = (inport) ->
 		else return atom(token)
 
 	token1 = inport.next_token()
-	if token1 is eof_object then return eof_object else read_ahead(token1)
+	if token1 is eof_object then return eof_object else return read_ahead(token1)
 
 string_escape = (string) -> string
 string_encode = (string) -> "\"#{string}\""
@@ -310,6 +310,16 @@ add_globals = (env) ->
 		'-': (x, y) -> x - y
 		'*': (x, y) -> x * y
 		'/': (x, y) -> x / y
+		'and': (args...) -> 
+			result = true
+			for arg in args when not(arg)
+				result = false
+			result
+		'or': (args...) ->
+			result = false
+			for arg in args when arg
+				result = true
+			result
 		'not': (x) -> not x
 		'>': (x, y) -> x > y
 		'<': (x, y) -> x < y
@@ -323,7 +333,7 @@ add_globals = (env) ->
 		'length': (x) -> x.length
 		'cons': (x, y) -> cons x, y
 		'car': (x) -> x[0]
-		'cdr': (x) -> x[1..-1]
+		'cdr': (x) -> if x.slice? && x.length then return x[1..-1] else return undefined
 		'append': (x, y) -> x.concat y
 		'list': (args...) -> args
 		'list?': (x) -> isa x, "List"
@@ -352,7 +362,7 @@ add_globals = (env) ->
 		'read-char': -> readchar()
 		'read': -> read()
 		'value': (x) -> x
-		'print': (x) -> to_string x
+		'print': (x) -> console.log to_string x
 		'write': (x, port) -> port.pr to_string(x)
 		'display': (x, port) -> port.pr if isa(x, "String") then x else to_string(x)
 		'require': (f) -> require to_string f
@@ -536,7 +546,9 @@ expand = (x, toplevel = false) ->
 		if x.length is 1
 			return None
 		else
-			return expand(xi, toplevel) for xi in x
+			result = []
+			result.push(expand xi, toplevel) for xi in x
+			return result
 	else if x[0] is _lambda
 		demand x, x.length >= 3
 		[lam, vars, body...] = x

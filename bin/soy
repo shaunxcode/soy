@@ -1,0 +1,32 @@
+#!/usr/bin/env coffee
+
+argv = require("optimist")
+	.usage('work with soy files.\nUsage: $0')
+	.demand('f')
+	.alias('f', 'file')
+	.describe('f', 'load a file')
+	.alias('v', 'verbose')
+	.describe('v', 'verbose info')
+	.argv
+	
+soy = require '../soy'
+fs = require "fs"
+
+out = (msg...) ->
+	if argv.v then console.log.apply @, msg
+	msg
+
+fileContents = fs.readFileSync argv.f, "UTF-8"
+out "File Contents", fileContents
+
+parsed = soy.parse "(begin #{fileContents})"
+out "Parsed", parsed
+
+desugared = soy.desugar parsed
+out "Desugared", desugared
+
+expanded = soy.expand desugared, true
+out "Expanded", expanded
+
+result = soy.eval expanded
+out "Result", result

@@ -3,7 +3,7 @@
 
     "description": "experimental lisp which supports both s-expressions and smalltalk esque syntax",
 
-    "version": "0.0.5",
+    "version": "0.0.6",
 
     "keywords": ["lisp", "soy", "smalltalk"],
 
@@ -37,5 +37,9 @@
 		"coffee-script": "latest"
     },
 
+	"dependencies": {
+		"optimist": "latest"
+	},
+	
 	"bin": {"soy-repl": "./bin/soy-repl"} 
 }

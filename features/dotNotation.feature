@@ -44,7 +44,7 @@ Feature: dot notation
 		Then the output should be "(+ 5.5 -10.03)"
 	
 	Scenario: accessing an object member
-		Given the input "(print {a:1 b:0 c:0}.a)"
+		Given the input "(value {a:1 b:0 c:0}.a)"
 		When the input is evaluated 
 		Then the output should be "1"
 	
