@@ -41,5 +41,8 @@
 		"optimist": "latest"
 	},
 	
-	"bin": {"soy-repl": "./bin/soy-repl"} 
+	"bin": {
+        "soy": "./bin/soy",
+        "soy-repl": "./bin/soy-repl"
+    } 
 }
