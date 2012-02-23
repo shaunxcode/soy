@@ -1,0 +1,25 @@
+(defmacro expand-let [name | 
+  let all-stuff: (gensym)
+     `(let ,all-stuff: '()
+           begin
+             (set! ,all-stuff (cons ,name ,all-stuff))
+             (print ,all-stuff))])
+
+(expand-let "peter is a cat")
+
+(defmacro kv-dict [args | `(apply dict (filter [x | key-value-pair? x] ,args))])
+
+
+
+(defmacro letr [&args | 
+	let bindings: (kv-dict args)
+	    body: `(,(filter [x | not (key-value-pair? x)] args))
+	    `(let* ,@(map-dict [k v | begin 
+                                   (cons `(set! ,k ,v) body)
+                                   `(key-value-pair ,k #f)] 
+                          bindings) 
+              begin ,@body)])
+
+(letr a: [b | + b b]
+	  b: [c | + c c]
+      +  2 3)

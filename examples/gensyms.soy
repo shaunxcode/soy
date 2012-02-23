@@ -1,0 +1,8 @@
+(defmacro sum-it [&vals | 
+  let some-key: (gensym)
+   `(let ,some-key: '()
+      begin
+        (map [x | set! ,some-key (+ x ,some-key)] (list ,@vals))
+        ,some-key)])
+
+(print (sum-it 1 2 3 4))

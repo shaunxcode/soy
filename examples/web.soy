@@ -1,0 +1,16 @@
+(load "soy-boat")
+
+(print (tags 
+	{html
+		{head
+			{title "title"}
+			{style (css-rules 
+				{"div" color: "red" 
+					{"span" color: "blue"}})} 
+			{script src: "https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"}
+			{script (file-contents "compilers/js/runtime.js")}
+			{script (js
+				((jQuery ".clickable-div").click [alert "Yo dawg I heard you like events"]))}}
+		{body
+			{div class: "clickable-div" "this is div" {span "this is span"}}}}))
+

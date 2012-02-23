@@ -4,7 +4,9 @@
 fs = require 'fs'
 
 None = undefined
- 
+
+current_dir = './'
+
 #Symbols are any token which we use when expanding and interpreting .
 class Symbol
 	constructor: (@str) ->
@@ -12,13 +14,15 @@ class Symbol
 symbol_table = {}
 
 sym = (s) ->
+	if s instanceof Symbol then return s
+	
 	if not symbol_table[s] then symbol_table[s] = new Symbol(s)
 	symbol_table[s]
 
 
 #We need to quickly define the main special forms, including the pipe and semicolon.
-specialForms = "compile key dict cons append list quote if set! define lambda key-value-pair begin defmacro | ; : . , ~ & % ^ # ,@".split(' ')
-[_compile, _key, _dict, _cons, _append, _list, _quote, _if, _set, _define, _lambda, _key_value_pair, 
+specialForms = "load enum-at compile key dict cons append list quote if set! define lambda key-value-pair begin defmacro | ; : . , ~ & % ^ # ,@".split(' ')
+[_load, _enum_at, _compile, _key, _dict, _cons, _append, _list, _quote, _if, _set, _define, _lambda, _key_value_pair, 
 _begin, _defmacro, _pipe, _semicolon, _colon, _period, 
 _comma, _tilda, _and, _percent, _hat, _hash, _commaat] = specialForms.map sym
 
@@ -136,7 +140,12 @@ class StringIO
 		@index = 0
 		@lines = string.trim().split("\n")
 
-	readline: -> @lines[@index++]
+	readline: -> 
+		line = 	@lines[@index++]
+		if line.trim().length is 0 and @index < @lines.length
+			return @readline()
+		else 
+			return line
 
 class Env
 	constructor: (parms = [], args = [], outer = false) ->
@@ -153,7 +162,7 @@ class Env
 
 	toString: ->
 		to_string(for key, val of @values
-			push([key, "#{to_string val}\n"]))
+			push([key, "#{to_string val}"]))
 		
 	update: (values) ->
 		@values = values
@@ -195,6 +204,9 @@ class Procedure
 	
 	applyProc: (args) ->
 		_eval @exp, new Env(@parms, args, @env)
+	
+	apply: (ctx, args) ->
+		@applyProc args
 		
 SyntaxError = (msg) -> msg
 
@@ -269,7 +281,7 @@ dict_values = (x) ->
 dict_to_string = (x, haveSeen = []) ->
 	
 	"{#{(for k,v of x 
-		"#{to_string k}: #{if isa(v, "Object") then (if v in haveSeen then "<CIRCULAR>" else dict_to_string(v, haveSeen.concat([v]))) else to_string(v)}").join " "}}"
+		"#{to_string k}: #{if isa(v, "Object") then (if v in haveSeen then "<CIRCULAR>" else dict_to_string(v, haveSeen.concat([v]))) else to_string(v)}").join(" ")}}"
 
 #Convert an in-memory object back into a soy-readable string.
 to_string = (x) ->
@@ -277,7 +289,7 @@ to_string = (x) ->
 	return "#f" if x is false
 	return x.str if isa x, "Symbol"
 	return string_encode(x) if isa x, "String"
-	return '(' + x.map(to_string).join(' ') + ')' if isa x, "List"
+	return "(#{x.map(to_string).join(' ')})" if isa x, "List"
 	return Number(x) if isa x, "Number"
 	return x.toString() if isa x, "Procedure"
 	return dict_to_string(x) if isa x, "Object"
@@ -299,13 +311,50 @@ all = (pred, items) ->
 is_pair = (x) ->
 	isa(x, "List") and x.length > 0
 
+is_key_value_pair = (x) ->
+	return if (isa(x, "Object") and x.key and x.value) then true else false
+
 cons = (x, y) -> 
 	[x].concat y
 
 macro_table = {}
+macro_table['let'] = applyProc: (args) ->
+	vars = []
+	vals = []
+	for atom, pos in args
+		if not(is_pair atom) or not(atom[0] is _key_value_pair) then break
+		vars.push atom[1]
+		vals.push atom[2]
+	
+	body = args[pos..-1]
+	if not(is_pair body[0]) and body.length is 1
+		body = body[0]
+	else 
+		body = unbox body
+
+	[[_lambda, vars, body]].concat vals
+	
+macro_table['let*'] = applyProc: (args) ->
+	if is_pair(args[0]) and args[0][0] is _key_value_pair
+		return [[_lambda, [args[0][1]], macro_table['let*'].applyProc args[1..-1]], args[0][2]]
+	else
+		return args
+		
+gensymid = 0
 
 add_globals = (env) ->
 	env.update
+		'gensym': -> sym "__SGENSYM__#{gensymid++}"
+		'enum-at': (d, dkey) -> 
+			dkey = to_string dkey
+
+			if isa(dkey, "Number") then dkey = parseInt(dkey)
+
+			if isa(dkey, "Number") and dkey < 0
+				dkey = d.length + dkey
+			
+			d[dkey]
+			
 		'+': (x, y) -> Number(x) + Number(y)
 		'-': (x, y) -> x - y
 		'*': (x, y) -> x * y
@@ -320,6 +369,9 @@ add_globals = (env) ->
 			for arg in args when arg
 				result = true
 			result
+		'string->symbol': (x) -> sym x
+		'string-encode': (x) -> (if isa(x, "Symbol") then x.str else JSON.stringify x)
+		'key': (x) -> x
 		'not': (x) -> not x
 		'>': (x, y) -> x > y
 		'<': (x, y) -> x < y
@@ -337,21 +389,32 @@ add_globals = (env) ->
 		'append': (x, y) -> x.concat y
 		'list': (args...) -> args
 		'list?': (x) -> isa x, "List"
+		'key-value-pair': (k, v) -> key: k, value: v
+		'key-value-pair?': (x) -> is_key_value_pair x
 		'dict': (args...) -> 
 			d = {}
 			for kv in args
-				d[to_string kv.key] = kv.value
+				d[kv.key] = kv.value
 			d
+		'atom?': (x) -> not(is_pair x) and (not (x.length is 0))
 		'null?': (x) -> x.length is 0
 		'symbol?': (x) -> isa x, "Symbol"
 		'boolean?': (x) -> isa x, "Boolean"
+
 		'pair?': (x) -> is_pair x
 		'port?': (x) -> isa x, "File"
-		'str': (args...) -> args.join('')
+		'map': (fn, arr) -> fn.apply({}, [item]) for item in arr
+		'filter': (fn, arr) -> (item for item in arr when fn.apply({}, [item]))
+		'join': (tok, arr) -> arr.join tok
+		'map-dict': (fn, dict) -> 
+			result = []
+			result.push(fn.apply {}, [key, val]) for key, val of dict
+			result
+		'str': (args...) -> args.join("")
 		'apply': (func, args) -> func.apply {}, args
 		'eval': (x) -> _eval expand(x)
 		'load': (x) -> load x 
-		'compile': (x) -> compile expand(x)
+		'compile': (lang, x) -> compile lang, expand(x)
 		'compile-file': (file) -> compile parse(new InPort(new FileIn(file)))
 		'call/cc': (x) -> callcc x
 		'open-input-file': (f) -> new FileIn(f)
@@ -366,8 +429,7 @@ add_globals = (env) ->
 		'write': (x, port) -> port.pr to_string(x)
 		'display': (x, port) -> port.pr if isa(x, "String") then x else to_string(x)
 		'require': (f) -> require to_string f
-
-compile = (ast) -> 
+		'file-contents': (f) -> require("fs").readFileSync(f, "UTF-8")
 
 global_env = add_globals new Env()
 
@@ -382,14 +444,6 @@ _eval = (x, env = false) ->
 		else if x[0] is _quote
 			[_, exp] = x
 			return exp
-		else if x[0] is _compile
-			return compile x[1]
-		else if x[0] is _dict
-			dict = {}
-			for kvp in x[1..-1]
-				do (kvp) ->
-					dict[to_string kvp.key] = _eval(kvp.value, env)
-			return dict
 		else if x[0] is _if
 			[_, test, conseq, alt] = x
 			return _eval((if _eval(test, env) then conseq else alt), env)
@@ -471,7 +525,7 @@ desugar = (x) ->
 				if !x[1] then throw "Missing param for dot expression "
 				return desugar [[_key, x[1]]].concat(x[2..-1]) 
 			else
-				return desugar (if pos > 1 then x[0..(pos - 2)] else []).concat([[x[pos-1], [_key, x[pos+1]]]]).concat(x[pos+2..-1])
+				return desugar (if pos > 1 then x[0..(pos - 2)] else []).concat([[_enum_at, x[pos-1], [_key, x[pos+1]]]]).concat(x[pos+2..-1])
 
 	#(a b,c) -> ((a b) c)
 	for token, pos in x
@@ -494,6 +548,20 @@ desugar = (x) ->
 
 	return x
 
+load = (filename) ->
+	filename = (if filename[0] in ['.', '/'] then '' else current_dir) + filename
+	if filename[-4..-1] isnt ".soy"
+		filename += ".soy"
+	
+	loadDir = filename.split('/')[0..-2].join('/') + '/'
+	oldDir = current_dir
+	
+	current_dir = loadDir
+	parsed = parse("(begin #{require("fs").readFileSync(filename, "UTF-8").trim()})")
+	current_dir = oldDir
+
+	parsed
+	
 #Walk tree of x, making optimizations/fixes, and signaling SyntaxError.
 expand = (x, toplevel = false) ->
 	if isa x, "List"
@@ -504,10 +572,12 @@ expand = (x, toplevel = false) ->
 	else if x[0] is _quote
 		demand x, x.length is 2
 		return x
+	else if x[0] is _load
+		return expand(desugar(load(expand x[1])))
 	else if x[0] is _key
 		return [_quote, x[1]]
 	else if x[0] is _key_value_pair
-		return {key: expand(x[1]), value: expand(x[2])}
+		return [_key_value_pair, (if isa(x[1], "Symbol") then x[1].str else expand x[1]), expand(x[2])]
 	else if x[0] is _dict
 		for atom, pos in x[1..-1] 
 			if not(isa atom, "List") or (isa(atom, "List") and atom[0] isnt _key_value_pair)
@@ -535,7 +605,7 @@ expand = (x, toplevel = false) ->
 			demand x, isa(v, "Symbol"), "can define only a symbol"
 			exp = expand x[2]
 			if def is _defmacro
-				demand x, toplevel, "define-macro only allowed at top level"
+				#demand x, toplevel, "define-macro only allowed at top level"
 				proc = _eval(exp)
 				demand x, isa(proc, "Procedure"), "macro must be a procedure"
 				macro_table[to_string v] = proc
@@ -570,9 +640,10 @@ expand = (x, toplevel = false) ->
 		return [_lambda, vars, bodyExp]
 	else if x[0] is _quasiquote
 		demand x, x.length is 2
-		return expand_quasiquote x[1]
+		return expand expand_quasiquote x[1]
 	else if isa(x[0], "Symbol") and macro_table[to_string x[0]]
-		return expand macro_table[to_string x[0]].applyProc(x[1..-1]), toplevel
+		macroed = macro_table[to_string x[0]].applyProc(x[1..-1])
+		return expand macroed, toplevel
 	else
 		return (expand leaf for leaf in x)
 
@@ -608,30 +679,108 @@ unzip = (arr) ->
 		b.push x[1]
 	[a, b]
 
-macro_table['let'] = applyProc: (args) ->
-	vars = []
-	vals = []
-	for atom, pos in args
-		if not(is_pair atom) or not(atom[0] is _key_value_pair) then break
-		vars.push atom[1]
-		vals.push atom[2]
-	
-	body = args[pos..-1]
-	if not(is_pair body[0]) and body.length is 1
-		body = body[0]
-	else 
-		body = unbox body
 
-	[[_lambda, vars, body]].concat vals
+getVar = (sym) -> 
+	newVar = ''
+	for c in sym.str.split()
+		ord = (c + '').charCodeAt(0)
+		if (ord >= 65 and ord <= 90) or (ord >= 97 and ord <= 122)
+			newVar += c
+		else 
+			newVar += "_#{ord}_"
+			
+	return newVar
+
+class CompileEnv 
+	constructor: (parent = None, defs = []) ->
+		@_defs = {}
+		@_uses = []
+		
+		if defs.length
+			@defs defs
+
+		if parent is None 
+			@_sets = dict_keys global_env.values
+		else
+			parent.child = @
+			
+	defs: (vname) ->
+		for v in (if type(vname) is "array" then vname else [v])
+			@_defs[to_string v] = true
+		@
 	
-macro_table['let*'] = applyProc: (args) ->
-	if is_pair(args[0]) and args[0][0] is _key_value_pair
-		return [[_lambda, [args[0][1]], macro_table['let*'].applyProc args[1..-1]], args[0][2]]
-	else
-		return args
+	uses: (vname) ->
+		for v in (if type(vname) is "array" then vname else [v])
+			if not @_defs[to_string v]
+				@_uses[to_string v] = true
+		@
 	
+	removeUse: (vname) ->
+		if @_uses[vname]
+			delete @_uses[vname]
+		@
+	
+	getLexicalUses: ->
+		if @child
+			@uses @child.getLexicalUses()
+			
+		dict_keys @_uses
+	
+
+compile = (targetLang, x, env = false) -> 
+	env or= new CompileEnv
+
+	if isa x, "Symbol"
+		env.uses x
+		return getVar x
+	else if not (isa x, "List")
+		return to_string x
+	else if x[0] is _quote
+		[_, exp] = x
+		return if exp instanceof Symbol then exp.str else to_string x
+	else if x[0] is _if
+		[_, test, conseq, alt] = x
+		return "(#{compile(targetLang, test, env)}) ? (#{compile(targetLang, conseq, env)}) : (#{compile(targetLang, alt, env)})"
+	else if x[0] is _set
+		[_, v, exp] = x
+		env.uses v
+		return "#{getVar(v)} = #{compile(targetLang, exp, env)};"
+	else if x[0] is _define
+		[_, v, exp] = x
+		env.defs v
+		return "var #{getVar(v)} = #{compile(targetLang, exp, env)};"
+	else if x[0] is _lambda
+		[_, vars, exp] = x
+		cexp = compile(targetLang, [_begin, exp], new CompileEnv(env, vars))
+		return "function(#{(getVar(v) for v in vars).join(",")}){#{cexp}}"
+	else if x[0] is _enum_at
+		return "#{compile targetLang, x[1], env}.#{compile targetLang, x[2], env}"
+	else if x[0] is _begin
+		val = []
+		last = x.pop()
+		
+		val.push(compile(targetLang, exp, env)) for exp in x[1..-1]
+		
+		if isa(last, "List")
+			cexp = compile(targetLang, last, new CompileEnv(env))
+			last = "new Soy.Bounce(function() {return #{cexp}})"
+		else
+			last = compile(targetLang, last, env)
+		
+		return "#{val.join("#{'\n'}")} return #{last}"
+	else  
+		exps = (compile(targetLang, exp, env) for exp in x)
+		
+		if exps[0] is 'apply'
+			env.removeUse('apply')
+			exps.shift()
+		
+		return "Soy.apply(#{exps[0]}, [#{exps[1..-1].join(',')}])";
+		 	
 #We only want to expose the parts of the module which are necessary.
+exports.setCurrentDir = (d) -> current_dir = d
 exports.topLevel = global_env
+exports.load = load
 exports.parse = parse
 exports.read = read
 exports.desugar = desugar

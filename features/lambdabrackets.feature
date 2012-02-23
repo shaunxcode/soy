@@ -21,3 +21,13 @@ Feature: lambda brackets
 		Given the input "(b[a b | [c |+ c a b]]c)"
 		When the input is parsed
 		Then the output should be "(b (lambda (a b) (lambda (c) (+ c a b))) c)"
+		
+	Scenario: writing with default arguments
+		Given the input "([a: 1 b: 2 | + a b])"
+		When the input is evaluated
+		Then the output should be "3"
+
+	Scenario: writing with default arguments passing first arg
+		Given the input "([a: 1 b: 2 | + a b] 2)"
+		When the input is evaluated
+		Then the output should be "4"

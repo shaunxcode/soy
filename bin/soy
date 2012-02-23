@@ -7,26 +7,32 @@ argv = require("optimist")
 	.describe('f', 'load a file')
 	.alias('v', 'verbose')
 	.describe('v', 'verbose info')
+	.alias('m', 'mode')
+	.describe('m', 'set mode (r: read, rd: read desugar, rde: read desugar expand, e: eval)')
+	.default('m', 'e')
 	.argv
-	
+
 soy = require '../soy'
 fs = require "fs"
-
+m = argv.m
 out = (msg...) ->
+	msg.push("\n")
 	if argv.v then console.log.apply @, msg
 	msg
 
-fileContents = fs.readFileSync argv.f, "UTF-8"
-out "File Contents", fileContents
+soy.setCurrentDir argv.f.split('/')[0..-2].join('/') + '/'
 
-parsed = soy.parse "(begin #{fileContents})"
-out "Parsed", parsed
+parsed = soy.load argv.f
 
-desugared = soy.desugar parsed
-out "Desugared", desugared
+out "Parsed", soy.to_string parsed
 
-expanded = soy.expand desugared, true
-out "Expanded", expanded
+if m in ['rd', 'rde', 'e']
+	desugared = soy.desugar parsed
+	out "Desugared", soy.to_string desugared
 
-result = soy.eval expanded
-out "Result", result
+if m in ['rde', 'e']
+	expanded = soy.expand desugared, true
+	out "Expanded", soy.to_string expanded
+
+if m in ['e']
+	result = soy.eval expanded

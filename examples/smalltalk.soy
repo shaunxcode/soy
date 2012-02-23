@@ -1,0 +1,14 @@
+(defmacro with-message [&body | 
+	`(lambda message-sig 
+	   (let method: (map [m | m.key] message-sig)
+            args: (map [m | m.value] message-sig)
+            ,@body))])
+
+(defmacro instance [name &body | `(define ,name (with-message begin ,@body))])
+
+(instance person 
+  (print method)
+  (print args))
+
+
+(person act: 5 while: 10 until: [> 5 6])

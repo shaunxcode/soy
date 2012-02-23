@@ -1,0 +1,2 @@
+(deftokenmacro ":" (lambda (lhs rhs)
+  `(,@(lhs 0 -2) (key-value-pair ,(lhs -1) ,(rhs 0)) ,@(rhs 1 -1))))

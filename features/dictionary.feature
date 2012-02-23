@@ -49,7 +49,7 @@ Feature: dictionary syntax
 		When the input is evaluated
 		 And the input "(value x.key)" 
 		 And the input is evaluated
-		Then the output should be "a"
+		Then the output should be {"a"}
 		
 	Scenario: set a key 
 		Given the input "(define x '())"

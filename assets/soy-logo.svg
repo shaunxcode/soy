@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.48.1 r9760"
+   sodipodi:docname="lambda.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   version="1.1">
+  <defs
+     id="defs4">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       id="perspective10" />
+    <inkscape:perspective
+       id="perspective2447"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       sodipodi:type="inkscape:persp3d" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.27566197"
+     inkscape:cx="402.01564"
+     inkscape:cy="334.32583"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1202"
+     inkscape:window-height="756"
+     inkscape:window-x="60"
+     inkscape:window-y="0"
+     showguides="true"
+     inkscape:guide-bbox="true"
+     inkscape:window-maximized="0">
+    <sodipodi:guide
+       orientation="0,1"
+       position="397.67909,259.82909"
+       id="guide3057" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       style="fill:#000000"
+       d="m 518.12366,793.83779 c -18.89461,-4.23141 -37.37919,-16.44141 -46.80162,-30.91483 -9.70831,-14.91255 -20.12371,-42.57954 -28.04595,-74.5 -2.38879,-9.625 -12.41208,-49.54832 -22.27397,-94.23151 -9.86187,-44.68319 -18.15569,-81.23184 -18.43069,-81.21922 -0.275,0.0126 -28.26844,63.12158 -62.20765,140.24216 l -61.70766,140.21922 -39.60849,0.26153 c -21.78467,0.14385 -39.389,-0.0936 -39.12072,-0.52771 2.44727,-3.95976 177.88822,-383.13803 177.84414,-384.37225 -0.12326,-3.45133 -7.4781,-36.0348 -11.36777,-50.36157 -14.85616,-54.71955 -32.91788,-84.04521 -57.34738,-93.11128 -7.77014,-2.88358 -24.88642,-2.50639 -33.49955,0.73823 -22.81044,8.59285 -37.37527,29.04235 -41.05796,57.64674 -1.88301,14.62585 -0.88613,13.22631 -9.42101,13.22631 l -7.45595,0 0.42704,-2.75 c 0.23487,-1.5125 0.68051,-7.43324 0.99032,-13.15719 3.02111,-55.81792 27.62608,-102.47382 60.68002,-115.06135 8.7658,-3.33817 20.62265,-4.64948 29.02012,-3.20947 28.2623,4.84645 49.58335,27.34811 65.07461,68.67801 13.69164,36.5286 25.96279,86.06667 68.2445,275.5 20.74481,92.94229 27.83716,114.85193 38.85724,140.23976 17.79699,41.00033 50.17398,58.01332 81.32775,42.73492 11.60522,-5.69142 19.17281,-15.75669 24.79429,-32.97761 2.07188,-6.34705 5.50983,-22.98183 5.53008,-26.75772 0.002,-0.4125 3.37902,-0.75 7.50402,-0.75 l 7.5,0 -0.0158,6.75 c -0.0447,19.06656 -3.87842,46.48087 -8.58242,61.37168 -8.74122,27.67085 -26.82148,48.21803 -48.38647,54.98845 -8.78093,2.75682 -23.36212,3.34284 -32.46304,1.3047 z"
+       id="path2453"
+       inkscape:export-filename="/Users/shaungilchrist/lambda.png"
+       inkscape:export-xdpi="90.269997"
+       inkscape:export-ydpi="90.269997"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="sssscscsssssssscssssssssssscssss" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:15.3;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
+       d="M 598.5229,689.62106 C 626.42607,524.99236 206.48342,520.80688 226.01564,328.27504"
+       id="path2459"
+       sodipodi:nodetypes="cs" />
+  </g>
+</svg>
