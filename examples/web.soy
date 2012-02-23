@@ -1,14 +1,16 @@
-(load "soy-boat")
+(load "lib/radicle")
+(load "lib/soy-boat-html")
+(load "lib/soy-boat-css")
 
 (print (tags 
 	{html
 		{head
-			{title "title"}
+			{title "Soy Lisp"}
 			{style (css-rules 
 				{"div" color: "red" 
 					{"span" color: "blue"}})} 
 			{script src: "https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"}
-			{script (file-contents "compilers/js/runtime.js")}
+			{script (file-contents "./node_modules/soy/soy.js")}
 			{script (js
 				((jQuery ".clickable-div").click [alert "Yo dawg I heard you like events"]))}}
 		{body

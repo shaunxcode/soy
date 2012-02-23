@@ -426,7 +426,7 @@ add_globals = (env) ->
 		'read': -> read()
 		'value': (x) -> x
 		'print': (x) -> console.log to_string x
-		'write': (x, port) -> port.pr to_string(x)
+		'file-write': (name, content) -> require("fs").writeFileSync(name, content, "UTF-8")
 		'display': (x, port) -> port.pr if isa(x, "String") then x else to_string(x)
 		'require': (f) -> require to_string f
 		'file-contents': (f) -> require("fs").readFileSync(f, "UTF-8")
