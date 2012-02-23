@@ -1,0 +1,1 @@
+merely install soy and then soy -f ./index.soy and it will emit index.html

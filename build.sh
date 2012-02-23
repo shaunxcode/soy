@@ -1,0 +1,1 @@
+soy -f ./index.soy

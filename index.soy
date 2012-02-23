@@ -1,0 +1,17 @@
+(load "lib/radicle")
+(load "lib/soy-boat-html")
+(load "lib/soy-boat-css")
+
+(file-write 
+	"index.html" 
+	(tags
+		{html
+			{head
+				{title "Soy Lisp"}
+				{style (load "style")}}
+			{body
+				{div class: "header"
+					{ul class: "menu"
+						{li {a href: "#what" "What?"}}
+						{li {a href: "#why" "Why?"}}}}
+				{div class: "repl" {pre}}}}))

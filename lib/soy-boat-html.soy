@@ -1,0 +1,34 @@
+(define tag-attrs [attrs | join " " (map-dict [attr val | str attr "=" (string-encode val)] attrs)])
+
+(define tag [tag-name content |
+	(let attrs: (tag-attrs (apply dict (filter [node | key-value-pair? node] content)))
+	    inner: (map [node | if (pair? node) (tag (car node) (cdr node)) node] 
+	                (filter [node | not (key-value-pair? node)] content))
+	    (str "<" tag-name (if (> attrs.length 0) (str " " attrs) "")">" (join "" inner) "</" tag-name ">"))])
+
+(define orphan-tag [tag-name attrs | str "<" tag-name " " (tag-attrs (apply dict attrs)) "/>"])
+
+(define meta-tag [&attrs | orphan-tag "meta" attrs])
+(define link-tag [&attrs | orphan-tag "link" attrs])
+
+(defmacro tags [&tag-tree |
+  let build-sub-tree: #f
+    begin
+      (set! build-sub-tree [tree | 
+		`(list ,@(map [n | if (and (pair? n) (= (car n) 'dict)) 
+	                          `(tag ,(string-encode (n 1)) ,(build-sub-tree (n 2 -1))) 
+	                          n]
+	         tree))])
+	  (let result: `(join "" ,(build-sub-tree tag-tree))
+		   result)])
+		
+(define html5-page [page-title content | tags
+	{html lang: "en"
+		{head
+			(meta-tag charset: "utf-8")
+			{title page-title}
+			(meta-tag name: "viewport"  content: "width=device-width, initial-scale=1.0")
+			(meta-tag name: "description" content: "")
+			(meta-tag name: "author" content: "")
+			(link-tag href: "" rel: "stylehsset")}
+		{body data-spy: "scroll" data-target: ".subnav" data-offset: 50 content}}])

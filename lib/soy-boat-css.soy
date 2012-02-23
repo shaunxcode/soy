@@ -1,0 +1,25 @@
+(define css-attrs [&attrs | 
+  (join ";" (map-dict [rule val | str rule ": " val] 
+                      (apply dict (filter [node | key-value-pair? node] 
+	                                      (flatten attrs)))))])
+
+
+(define css-rule [selector &rules | str selector "{" (apply css-attrs rules) ";}"])
+
+(defmacro css-rules [&rules-tree |
+  let all-rules: (gensym)
+       sub-lists: #f
+       begin
+         (set! sub-lists [prefix tree | 
+           `(list ,@(map [n | if (and (pair? n) (= (car n) 'dict))
+                                      (let rule-def: (str prefix (if prefix.length " " "") n.1)
+                                        `(let begin 
+                                           (set! ,all-rules 
+	                                             (cons (css-rule ,rule-def ,(sub-lists rule-def (n 2 -1))) ,all-rules)) 
+	                                       #t))
+                                      n]
+                         tree))])
+         `(join " " (let ,all-rules: '()
+               begin 
+                 ,(sub-lists "" rules-tree)
+                 ,all-rules))])

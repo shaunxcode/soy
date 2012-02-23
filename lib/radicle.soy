@@ -1,0 +1,7 @@
+(define flatten [y | 
+  if (null? y) 
+     '()
+     (if (not (pair? y)) 
+         (list y) 
+         (append (flatten (car y))
+                 (flatten (cdr y))))])
