@@ -1,5 +1,101 @@
+(define 5px "5px")
+(define soy-grey "#FAFAFC")
+(define header-link-color "#000")
+(define repl-text "#00FF00")
+(define px [amt | str amt "px"])
+
+(define border-radius-top [amt | 
+	let pxamt: (px amt) 
+		list
+			-webkit-border-top-left-radius: pxamt
+			-webkit-border-top-right-radius: pxamt
+			-moz-border-radius-topleft: pxamt
+			-moz-border-radius-topright: pxamt])
+
 (css-rules
-	{"div" 
-		color: "#ff0000" 
-		border-bottom: "1px solid #000"
-		{"li" color: "#00ff00" display: "inline"}})
+	{"body" 
+		font-family: "monospace"}
+		
+	{".header" 
+		{".logo"
+			{"img" float: "left"}
+			
+			float: "left"
+			border: "1px solid #999"
+			border-radius: 5px
+			padding: 5px
+			background: "white"
+			overflow: "hidden"
+			
+			{"div.title" 
+				float: "left"
+				margin-left: 5px
+				font-size: "60px"}}
+		position: "fixed"
+		top: "25px"
+		left: "40px"
+		right: "40px"
+		overflow: "hidden"
+		border: "1px solid #000"
+		border-radius: 5px
+		background: soy-grey
+		padding: 5px
+		
+		{"ul" 
+			margin-top: "18px"
+			
+			{"li" 
+				text-transform: "uppercase"
+				margin-top: "10px"
+				margin-left: "20px"
+				color: "#00ff00" 
+				display: "inline"
+				font-size: "300%"
+				
+				{"a" 
+					color: header-link-color
+					text-decoration: "none"}}}}
+	{"#content" 
+		width: 940 
+		margin-left: "40px"
+		{".bookmark" top: "-140px" height: 0 display: "block" width: "0" position: "relative"}
+		{"h1" margin-top: "120px"}
+		{"p" height: "1500px"}}
+		
+	{".repl-text"
+		padding: 5px;
+	 	margin: "0"
+		height: "252px"}
+
+	{".repl"		
+		(border-radius-top 5)
+		border: "1px solid #333"
+		position: "fixed"
+		left: "40px"
+		bottom: "0px"
+		width: "500px"
+		height: "300px"
+		background: (rgba 0 0 0 0.8)
+			
+		{".repl-handle"
+			background: "#000"
+			color: "white"
+			padding: 5px
+			text-align: "center"}
+		
+		{".repl-bottom"
+			{".repl-token"
+			 	padding-left: 5px
+				color: repl-text
+				float: "left"
+				padding-right: "0.5em"}
+				
+			{".repl-input"
+				width: "452px"
+				float: "left"
+				font-family: "inherit"
+				background: "transparent"
+				border: "0"
+				padding: "0"
+				color: repl-text
+				font-size: "inherit"}}})

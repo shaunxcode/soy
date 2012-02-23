@@ -23,3 +23,5 @@
                begin 
                  ,(sub-lists "" rules-tree)
                  ,all-rules))])
+
+(define rgba [r g b a | str "rgba(" (join "," (list r g b a)) ")"])

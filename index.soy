@@ -11,7 +11,27 @@
 				{style (load "style")}}
 			{body
 				{div class: "header"
+					{div class: "logo"
+						{img src: "images/soy-icon.png"}
+						{div class: "title" "SOY-LISP"}}
 					{ul class: "menu"
 						{li {a href: "#what" "What?"}}
-						{li {a href: "#why" "Why?"}}}}
-				{div class: "repl" {pre}}}}))
+						{li {a href: "#why" "Why?"}}
+						{li {a href: "#how" "How?"}}
+						{li {a href: "#docs" "Docs"}}
+						{li {a href: "#tutorials" "Tutorials"}}}}
+				{div id: "content"
+					{div 
+						{span id: "what" class: "bookmark"}
+						{h1 "What?"}
+						{p "Soy lisp is an exploration of the limitations of lisp in relation to the web"}}
+					{div 
+						{span id: "why" class: "bookmark"}
+						{h1 "Why?"}
+						{p "To scratch the itch created by being forced to use more than one language to accomplish even the most simple of web apps"}}}
+				{div class: "repl" 
+					{div class: "repl-handle" "(SOY REPL)"} 
+					{pre class: "repl-text"}
+					{div class: "repl-bottom"
+						{span class: "repl-token" "soy> "}
+						{input class: "repl-input" type: "text" }}}}}))
