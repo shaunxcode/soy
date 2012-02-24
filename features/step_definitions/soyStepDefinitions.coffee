@@ -8,11 +8,15 @@ module.exports = ->
 	@Given /^the input: \{(.*)\}$/, (input, next) ->
 		@input = input
 		next()
-					
+			
 	@Given /^the input "([^"]*)"$/, (input, next) ->
 		@input = input
 		next()
 
+	@Given /^the input (.*)$/, (input, next) ->
+		@input = input
+		next()
+		
 	@When /^the input is parsed/, (next) ->
 		@output = @soy.to_string @soy.expand @soy.desugar @soy.parse @input
 		next()

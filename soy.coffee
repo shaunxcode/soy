@@ -207,7 +207,10 @@ class Procedure
 	
 	apply: (ctx, args) ->
 		@applyProc args
-		
+	
+	arity: ->
+		@parms.length
+
 SyntaxError = (msg) -> msg
 
 parse = (inport) ->
@@ -252,7 +255,9 @@ type = do ->
 			
 isa = (x, testType) ->
 	testType is "Symbol" and x instanceof Symbol \
+	or testType is "Func" and (x instanceof Procedure or type(x) is "function")\
 	or testType is "Procedure" and x instanceof Procedure \
+	or testType is "Boolean" and type(x) is "boolean" \
 	or testType is "String" and type(x) is "string" \
 	or testType is "Number" and type(x) is "number" \
 	or testType is "List" and type(x) is "array" \
@@ -433,6 +438,9 @@ add_globals = (env) ->
 
 global_env = add_globals new Env()
 
+arity = (x) ->
+	if isa(x, "Procedure") then x.arity() else x.length
+	
 _eval = (x, env = false) ->
 	env or= global_env
 
@@ -472,6 +480,38 @@ _eval = (x, env = false) ->
 			else if proc.apply
 				return proc.apply {}, exps
 			else
+				#true or false - missing second arg becomes false
+				if isa(proc, "Boolean") 
+					return if proc then exps[0] else (if exps[1]? then exps[1] else false)
+				
+				#int or float
+				if isa(proc, "Number") 
+					result = proc
+					for term, i in exps 
+						if applyTerm
+							result = applyTerm.apply {}, [result, term]
+							applyTerm = false
+						else if isa(term, "Number")
+							result *= term
+						else
+							if isa(term, "Func")
+								if arity(term) is 1
+									result = term.apply {}, [result]
+								else
+									applyTerm = term
+							else
+								throw new Error "encountered #{term} when evaluating application of Number expected Number of Func"
+					if applyTerm
+						result = ((r, t) -> ((y) -> t.apply {}, [r, y]))(result, applyTerm)
+						applyTerm = false
+					return result
+				
+				#anything will get to here so long as proc is a prim and first arg is a func
+				if exps.length and isa(exps[0], "Func")
+					return exps[0].apply({}, [proc].concat(exps[1..-1]))
+
+				#assume it is a dict, list or string
+				#single index look up
 				if exps.length is 1
 					dkey = to_string exps.shift()
 					
@@ -481,7 +521,8 @@ _eval = (x, env = false) ->
 						dkey = proc.length + dkey
 
 					return proc[dkey]
-				
+
+				#range based look up
 				if exps.length is 2
 					dkey1 = to_string exps.shift()
 					dkey2 = to_string exps.shift()
