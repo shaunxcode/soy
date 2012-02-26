@@ -344,7 +344,7 @@ macro_table['let*'] = applyProc: (args) ->
 		return [[_lambda, [args[0][1]], macro_table['let*'].applyProc args[1..-1]], args[0][2]]
 	else
 		return args
-		
+
 gensymid = 0
 
 add_globals = (env) ->
@@ -374,6 +374,9 @@ add_globals = (env) ->
 			for arg in args when arg
 				result = true
 			result
+		'set-dict-prop': (o, k, v) -> 
+			o[k] = v
+			o
 		'string->symbol': (x) -> sym x
 		'string-encode': (x) -> (if isa(x, "Symbol") then x.str else JSON.stringify x)
 		'key': (x) -> x
@@ -481,13 +484,13 @@ _eval = (x, env = false) ->
 				return proc.apply {}, exps
 			else
 				#true or false - missing second arg becomes false
-				if isa(proc, "Boolean") 
+				if isa(proc, "Boolean")
 					return if proc then exps[0] else (if exps[1]? then exps[1] else false)
-				
+
 				#int or float
-				if isa(proc, "Number") 
+				if isa(proc, "Number")
 					result = proc
-					for term, i in exps 
+					for term in exps 
 						if applyTerm
 							result = applyTerm.apply {}, [result, term]
 							applyTerm = false
@@ -505,12 +508,40 @@ _eval = (x, env = false) ->
 						result = ((r, t) -> ((y) -> t.apply {}, [r, y]))(result, applyTerm)
 						applyTerm = false
 					return result
-				
+
 				#anything will get to here so long as proc is a prim and first arg is a func
 				if exps.length and isa(exps[0], "Func")
 					return exps[0].apply({}, [proc].concat(exps[1..-1]))
-
+				
 				#assume it is a dict, list or string
+				if isa(proc, "Object") and isa(exps[0], "Object")
+					result = proc
+					for obj in exps
+						if isa(obj, "Object")
+							result = _eval([sym("extends"), result, obj])
+						else 
+							throw "Only objects may be extended to each other"
+					return result
+
+				#list list => append list
+				if isa(proc, "List") and isa(exps[0], "List")
+					result = proc
+					for lst in exps
+						if isa(lst, "List")
+							result = result.concat lst 
+						else
+							throw "only lists may be appended to lists"
+					return result
+				
+				if isa(proc, "String") and isa(exps[0], "String")
+					result = proc
+					for str in exps
+						if isa(str, "String")
+							result += str
+						else
+							throw "only strings may be concat to strings"
+					return result
+					
 				#single index look up
 				if exps.length is 1
 					dkey = to_string exps.shift()
@@ -530,7 +561,7 @@ _eval = (x, env = false) ->
 					if isa(dkey2, "Number") then dkey2 = parseInt(dkey2)
 					
 					return proc[dkey1..dkey2]
-
+				
 				throw (to_string proc) + " can not be used as function"
 	
 desugar = (x) ->
@@ -723,7 +754,7 @@ unzip = (arr) ->
 
 getVar = (sym) -> 
 	newVar = ''
-	for c in sym.str.split()
+	for c in sym.str.split("")
 		ord = (c + '').charCodeAt(0)
 		if (ord >= 65 and ord <= 90) or (ord >= 97 and ord <= 122)
 			newVar += c
@@ -793,6 +824,7 @@ compile = (targetLang, x, env = false) ->
 	else if x[0] is _lambda
 		[_, vars, exp] = x
 		cexp = compile(targetLang, [_begin, exp], new CompileEnv(env, vars))
+		console.log "VARS", vars
 		return "function(#{(getVar(v) for v in vars).join(",")}){#{cexp}}"
 	else if x[0] is _enum_at
 		return "#{compile targetLang, x[1], env}.#{compile targetLang, x[2], env}"
@@ -816,8 +848,15 @@ compile = (targetLang, x, env = false) ->
 			env.removeUse('apply')
 			exps.shift()
 		
-		return "Soy.apply(#{exps[0]}, [#{exps[1..-1].join(',')}])";
-		 	
+		if exps[0].indexOf(".") isnt -1
+			return "#{exps[0]}(#{exps[1..-1].join(',')})"
+		else 
+			return "Soy.apply(#{exps[0]}, [#{exps[1..-1].join(',')}])";
+
+
+#_eval expand desugar 
+_eval expand(desugar(load("radicle.soy")), true)
+		
 #We only want to expose the parts of the module which are necessary.
 exports.setCurrentDir = (d) -> current_dir = d
 exports.topLevel = global_env

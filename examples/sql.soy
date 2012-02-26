@@ -5,4 +5,14 @@
 		aggregate: {cnt: {count: *}}
 		where: {or {visits: > 20} 
 		           {last_login: < a-year-ago}} 
-		order: {"created"}}) 
+		order: {"created"}})
+		
+(defcrud Person)
+
+(Person.get 3)
+((Person.getAll) map [p | 
+	(print p.name)
+])
+ 
+
+(map [p | print p.name] (person.getAll))

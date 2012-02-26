@@ -1,0 +1,27 @@
+(defapplytypes 
+  (bool any any if)
+
+  (int 
+    (int *)
+    (float *))
+
+  (float 
+    (int *)
+    (float *))
+
+  (list 
+    (list append)
+    (int list-at)
+    (int int list-range))
+
+  (string
+    (string str)
+    (int str-at)
+    (int int str-range))
+
+  (dict 
+    (dict extend)
+    (int dict-at)
+    (string dict-at)
+    (float dict-at)
+    (string any dict-set-at)))
