@@ -855,7 +855,7 @@ compile = (targetLang, x, env = false) ->
 
 
 #_eval expand desugar 
-_eval expand(desugar(load("radicle.soy")), true)
+_eval expand(desugar(load(process.cwd() + "/radicle.soy")), true)
 		
 #We only want to expose the parts of the module which are necessary.
 exports.setCurrentDir = (d) -> current_dir = d

@@ -3,7 +3,7 @@
 
     "description": "experimental lisp which supports both s-expressions and smalltalk esque syntax",
 
-    "version": "0.0.901",
+    "version": "0.0.902",
 
     "keywords": ["lisp", "soy", "smalltalk"],
 
