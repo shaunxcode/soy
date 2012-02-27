@@ -1,7 +1,7 @@
 (define css-attrs [&attrs | 
   (join ";" (map-dict [rule val | str rule ": " val] 
                       (apply dict (filter [node | key-value-pair? node] 
-	                                      (flatten attrs)))))])
+                                          (flatten attrs)))))])
 
 
 (define css-rule [selector &rules | str selector "{" (apply css-attrs rules) ";}"])
@@ -15,8 +15,8 @@
                                       (let rule-def: (str prefix (if prefix.length " " "") n.1)
                                         `(let begin 
                                            (set! ,all-rules 
-	                                             (cons (css-rule ,rule-def ,(sub-lists rule-def (n 2 -1))) ,all-rules)) 
-	                                       #t))
+                                                 (cons (css-rule ,rule-def ,(sub-lists rule-def (n 2 -1))) ,all-rules)) 
+                                           #t))
                                       n]
                          tree))])
          `(join " " (let ,all-rules: '()

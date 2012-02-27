@@ -1,1 +1,1 @@
-soy -f ./index.soy
+../bin/soy -f ./index.soy

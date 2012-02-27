@@ -1,0 +1,56 @@
+
+(defmacro do [loop start iter stop body |
+  `(let ,loop: ,start
+        iter: ,iter
+        stop: ,stop
+        body: [,loop | ,body]
+        recur: #f
+        begin
+          (set! recur [
+            if (stop ,loop)
+               #t
+               (begin
+                 (body ,loop)
+                 (set! ,loop (iter ,loop))
+                 (recur))])
+          (recur))])
+
+(defmacro kv-dict [args | 
+ `(apply dict (filter [x | key-value-pair? x] ,args))])
+
+(defmacro sans-kv [ args | 
+ `(filter [x | not (key-value-pair? x)] ,args)])
+
+(defmacro letr [&args |
+  let bindings: (kv-dict args)
+      body: (sans-kv args)
+      `(let ,@(map-dict [k v | begin 
+                                 (set! body (cons `(set! ,k ,v) body))
+                                 `(key-value-pair ,k #f)] 
+                         bindings) 
+         begin 
+           ,@body)])
+
+(define flatten [y | 
+  if (null? y) 
+     '()
+     (if (not (pair? y)) 
+         (list y) 
+         (append (flatten (car y))
+                 (flatten (cdr y))))])
+		
+(define -> [x y | 
+  let items: '() 
+    begin 
+      (do i x 
+          (1 +) 
+          (y <) 
+          (set! items (append items i))) 
+      items])
+
+(define extends [a b | 
+  let new-dict: {} 
+    begin
+      (map-dict [k v | set-dict-prop new-dict k v] a)
+      (map-dict [k v | set-dict-prop new-dict k v] b)
+      new-dict])

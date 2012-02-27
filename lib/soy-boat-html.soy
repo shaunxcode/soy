@@ -7,7 +7,6 @@
 	    (str "<" tag-name (if (> attrs.length 0) (str " " attrs) "")">" (join "" inner) "</" tag-name ">"))])
 
 (define orphan-tag [tag-name attrs | str "<" tag-name " " (tag-attrs (apply dict attrs)) "/>"])
-
 (define meta-tag [&attrs | orphan-tag "meta" attrs])
 (define link-tag [&attrs | orphan-tag "link" attrs])
 
@@ -22,13 +21,6 @@
 	  (let result: `(join "" ,(build-sub-tree tag-tree))
 		   result)])
 		
-(define html5-page [page-title content | tags
-	{html lang: "en"
-		{head
-			(meta-tag charset: "utf-8")
-			{title page-title}
-			(meta-tag name: "viewport"  content: "width=device-width, initial-scale=1.0")
-			(meta-tag name: "description" content: "")
-			(meta-tag name: "author" content: "")
-			(link-tag href: "" rel: "stylehsset")}
-		{body data-spy: "scroll" data-target: ".subnav" data-offset: 50 content}}])
+(defmacro js [form | `(compile "js" (quote ,form))])
+
+(define jq-init [soy-code | str "$(function(){" (compile "js" (read soy-code)) "})"])

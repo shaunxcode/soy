@@ -8,7 +8,11 @@
 		{html
 			{head
 				{title "Soy Lisp"}
-				{style (load "style")}}
+				{style (load "style")}
+				{script src: "https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"}
+				{script (file-contents "node_modules/soy/radicle.soy") id: "soy-script-radicle" type: "text/soy"}
+				{script (file-contents "lib/soy-shim.js")}
+				{script (file-contents "node_modules/soy/soy.js")}}
 			{body
 				{div class: "header"
 					{div class: "logo"
@@ -30,8 +34,10 @@
 						{h1 "Why?"}
 						{p "To scratch the itch created by being forced to use more than one language to accomplish even the most simple of web apps"}}}
 				{div class: "repl" 
-					{div class: "repl-handle" "(SOY REPL)"} 
-					{pre class: "repl-text"}
-					{div class: "repl-bottom"
-						{span class: "repl-token" "soy> "}
-						{input class: "repl-input" type: "text" }}}}}))
+					{div class: "repl-handle" "(SOY REPL)"}
+					{div class: "repl-body" 
+						{pre class: "repl-text"}
+						{div class: "repl-bottom"
+							{span class: "repl-token" "soy> "}
+							{input class: "repl-input" type: "text" }}}}}
+			{script (jq-init (file-contents "web-repl.soy"))}}))
